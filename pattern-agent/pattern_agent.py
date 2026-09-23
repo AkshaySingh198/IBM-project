@@ -5,6 +5,34 @@ model = SentenceTransformer("all-MiniLM-L6-v2")
 client = chromadb.PersistentClient(path="./chroma_db")
 collection = client.get_or_create_collection(name="fraud_cases")
 
+def generate_explanation(narrative: str, matched_cases: list, flag: bool) -> str:
+    if not matched_cases:
+        return "No similar past cases found. Insufficient evidence to flag this transaction."
+
+    top = matched_cases[0]
+
+    if not flag:
+        return (
+            f"This transaction shows only weak similarity (top match "
+            f"{top['similarity_percent']}%) to past fraud cases. "
+            f"No strong pattern match found — not flagged."
+        )
+
+    other_matches = matched_cases[1:3]
+    other_text = ""
+    if other_matches:
+        other_text = " Additional supporting matches: " + "; ".join(
+            f"{m['case_id']} ({m['similarity_percent']}%)" for m in other_matches
+        )
+
+    explanation = (
+        f"Flagged: this transaction closely resembles {top['case_id']} "
+        f"({top['similarity_percent']}% similarity) — \"{top['narrative']}\"."
+        f"{other_text}"
+    )
+    return explanation
+
+
 def analyze_case(narrative: str, top_k: int = 3):
     query_embedding = model.encode([narrative]).tolist()
 
@@ -27,9 +55,11 @@ def analyze_case(narrative: str, top_k: int = 3):
             "amount": metadata["amount"]
         })
 
-    flag = any(m["similarity_percent"] > 70 for m in matched_cases)
+    flag = any(m["similarity_percent"] > 55 for m in matched_cases)
+    explanation = generate_explanation(narrative, matched_cases, flag)
 
     return {
         "matched_cases": matched_cases,
-        "flag": flag
+        "flag": flag,
+        "explanation": explanation
     }

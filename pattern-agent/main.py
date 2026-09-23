@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from pattern_agent import analyze_case
 from graph_agent import find_linked_flagged_tokens
 
-app = FastAPI()
+app = FastAPI(title="Pattern & Graph Agent - Fraud Investigation Copilot")
 
 class CaseInput(BaseModel):
     case_id: str
@@ -19,7 +19,8 @@ def analyze(case: CaseInput):
         "case_id": case.case_id,
         "matched_cases": result["matched_cases"],
         "flag": result["flag"],
-        "explanation": result["explanation"]
+        "explanation": result["explanation"],
+        "error": result.get("error")
     }
 
 @app.get("/graph-agent/linked/{entity_token}")

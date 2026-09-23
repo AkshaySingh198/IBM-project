@@ -34,32 +34,58 @@ def generate_explanation(narrative: str, matched_cases: list, flag: bool) -> str
 
 
 def analyze_case(narrative: str, top_k: int = 3):
-    query_embedding = model.encode([narrative]).tolist()
+    try:
+        if not narrative or not narrative.strip():
+            return {
+                "matched_cases": [],
+                "flag": False,
+                "explanation": "No narrative provided — cannot analyze an empty case.",
+                "error": None
+            }
 
-    results = collection.query(
-        query_embeddings=query_embedding,
-        n_results=top_k
-    )
+        query_embedding = model.encode([narrative]).tolist()
 
-    matched_cases = []
-    for i in range(len(results["ids"][0])):
-        case_id = results["ids"][0][i]
-        distance = results["distances"][0][i]
-        similarity = round((1 - distance) * 100, 2)
-        metadata = results["metadatas"][0][i]
+        results = collection.query(
+            query_embeddings=query_embedding,
+            n_results=top_k
+        )
 
-        matched_cases.append({
-            "case_id": case_id,
-            "similarity_percent": similarity,
-            "narrative": metadata["narrative"],
-            "amount": metadata["amount"]
-        })
+        if not results["ids"] or not results["ids"][0]:
+            return {
+                "matched_cases": [],
+                "flag": False,
+                "explanation": "No past cases available to compare against.",
+                "error": None
+            }
 
-    flag = any(m["similarity_percent"] > 55 for m in matched_cases)
-    explanation = generate_explanation(narrative, matched_cases, flag)
+        matched_cases = []
+        for i in range(len(results["ids"][0])):
+            case_id = results["ids"][0][i]
+            distance = results["distances"][0][i]
+            similarity = round((1 - distance) * 100, 2)
+            metadata = results["metadatas"][0][i]
 
-    return {
-        "matched_cases": matched_cases,
-        "flag": flag,
-        "explanation": explanation
-    }
+            matched_cases.append({
+                "case_id": case_id,
+                "similarity_percent": similarity,
+                "narrative": metadata.get("narrative", "N/A"),
+                "amount": metadata.get("amount", 0)
+            })
+
+        flag = any(m["similarity_percent"] > 55 for m in matched_cases)
+        explanation = generate_explanation(narrative, matched_cases, flag)
+
+        return {
+            "matched_cases": matched_cases,
+            "flag": flag,
+            "explanation": explanation,
+            "error": None
+        }
+
+    except Exception as e:
+        return {
+            "matched_cases": [],
+            "flag": False,
+            "explanation": "An error occurred while analyzing this case.",
+            "error": str(e)
+        }

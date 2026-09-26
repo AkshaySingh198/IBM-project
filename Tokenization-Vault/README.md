@@ -1,6 +1,6 @@
 # Tokenization + Secure Identity Vault
 
-Part of the Zero-Exposure Fraud Investigation Copilot. This module detects and replaces PII with consistent tokens and stores the original identities securely in an encrypted vault.
+This module detects and replaces PII with consistent tokens and stores the original identities securely in an encrypted vault.
 
 ## What this does
 

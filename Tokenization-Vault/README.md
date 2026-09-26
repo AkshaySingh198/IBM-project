@@ -114,11 +114,13 @@ Checks whether the API is running.
 * `overlap_resolution.py` — resolves overlapping PII detections
 * `vault.py` — encrypted identity-to-token mapping
 * `api.py` — FastAPI interface
-* `raw_transactions.csv` — synthetic 30-row input dataset
+* `raw_transactions.csv` — synthetic 30-row input dataset(self made dataset using faker.)
 * `tokenized_dataset.json` — pre-generated tokenized transaction output
 * `token_watchlist_linkage.json` — pre-generated token/watchlist linkage output
 * `TOKEN_SCHEMA.md` — token format and entity definitions
 * `requirements.txt` — Python dependencies
+* `privacy_preserving_employee_dataset_with_planted_links.csv` — Synthetic dataset containing intentionally planted device/IP relationships.
+* `tokenized_employee_dataset.csv` — Tokenized output generated from free-form transaction text.(Mainly what you will need in terms of data)
 
 ## Generated / Local Files
 

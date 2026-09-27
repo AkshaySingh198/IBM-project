@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Local vault / secrets
+vault.db
+vault_key.key
+watchlist.csv
+
+# Development-only tests
+test_vault.py
+test_overlap_resolution.py
+verify_structured_tokenization.py
+test_vault.db
+test_vault_key.key
+test_watchlist.csv

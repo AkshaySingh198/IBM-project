@@ -1,0 +1,31 @@
+transaction_id,sender_name,receiver_name,account_number,city,amount,timestamp,flagged_large_amount,transaction_text
+TXN0001,Aryan Maharaj,Udant Dewan,1819600133,Kishanganj,230968,2026-02-12T14:00:00,True,Aryan Maharaj sent Rs 230968 to Udant Dewan from account 1819600133 in Kishanganj.
+TXN0002,Oni Kannan,Arunima Ahuja,2654235116,Secunderabad,178582,2026-01-04T15:00:00,False,Oni Kannan sent Rs 178582 to Arunima Ahuja from account 2654235116 in Secunderabad.
+TXN0003,Aishani Bassi,Jeet Radhakrishnan,1849593103,Vijayawada,174829,2026-03-06T13:00:00,False,Aishani Bassi sent Rs 174829 to Jeet Radhakrishnan from account 1849593103 in Vijayawada.
+TXN0004,Harrison Rai,Sudiksha Patla,2553419283,Surendranagar Dudhrej,382697,2026-03-04T12:00:00,True,Harrison Rai sent Rs 382697 to Sudiksha Patla from account 2553419283 in Surendranagar Dudhrej.
+TXN0005,Anamika Kanda,Daksh Karnik,0564139537,Berhampore,15933,2026-02-25T22:00:00,False,Anamika Kanda sent Rs 15933 to Daksh Karnik from account 0564139537 in Berhampore.
+TXN0006,Oviya Kalita,Alka Dewan,3884969653,Danapur,282704,2026-01-09T04:00:00,True,Oviya Kalita sent Rs 282704 to Alka Dewan from account 3884969653 in Danapur.
+TXN0007,Gavin Batta,Michael Dutta,6916697848,Raipur,9228,2026-02-16T09:00:00,False,Gavin Batta sent Rs 9228 to Michael Dutta from account 6916697848 in Raipur.
+TXN0008,Harini Choudhury,Radhika Dugar,7048281489,Jamnagar,192917,2026-02-15T01:00:00,False,Harini Choudhury sent Rs 192917 to Radhika Dugar from account 7048281489 in Jamnagar.
+TXN0009,Neel Zacharia,Ekiya Suresh,0154303911,Coimbatore,246130,2026-02-01T06:00:00,True,Neel Zacharia sent Rs 246130 to Ekiya Suresh from account 0154303911 in Coimbatore.
+TXN0010,Kabir Soman,Alka Wable,9638346578,Jamshedpur,86932,2026-01-18T12:00:00,False,Kabir Soman sent Rs 86932 to Alka Wable from account 9638346578 in Jamshedpur.
+TXN0011,Umang Bhatt,Ansh Karpe,9301031051,Alwar,203554,2026-02-14T17:00:00,True,Umang Bhatt sent Rs 203554 to Ansh Karpe from account 9301031051 in Alwar.
+TXN0012,Tanish Zacharia,Urvashi Kibe,7631165667,Navi Mumbai,206339,2026-02-18T05:00:00,True,Tanish Zacharia sent Rs 206339 to Urvashi Kibe from account 7631165667 in Navi Mumbai.
+TXN0013,Neha Nori,Yuvraj Handa,3872624731,Jamalpur,463361,2026-03-15T06:00:00,True,Neha Nori sent Rs 463361 to Yuvraj Handa from account 3872624731 in Jamalpur.
+TXN0014,Chandresh Zachariah,Girik Khalsa,2677360260,Bilaspur,90722,2026-03-19T11:00:00,False,Chandresh Zachariah sent Rs 90722 to Girik Khalsa from account 2677360260 in Bilaspur.
+TXN0015,Bhavika Sampath,Mohammed Gupta,4309805009,Ambala,362795,2026-02-03T01:00:00,True,Bhavika Sampath sent Rs 362795 to Mohammed Gupta from account 4309805009 in Ambala.
+TXN0016,Oviya Kalita,Dakshesh Trivedi,1219136193,Udupi,79026,2026-01-09T12:00:00,False,Oviya Kalita sent Rs 79026 to Dakshesh Trivedi from account 1219136193 in Udupi.
+TXN0017,Oni Virk,Advika Jayaraman,5346247510,Phusro,192497,2026-03-21T22:00:00,False,Oni Virk sent Rs 192497 to Advika Jayaraman from account 5346247510 in Phusro.
+TXN0018,Ethan Yogi,Yashawini Lanka,2513542784,Begusarai,150625,2026-03-14T20:00:00,False,Ethan Yogi sent Rs 150625 to Yashawini Lanka from account 2513542784 in Begusarai.
+TXN0019,Hemang Desai,Jack Chhabra,8244935348,Chandrapur,254018,2026-01-27T22:00:00,True,Hemang Desai sent Rs 254018 to Jack Chhabra from account 8244935348 in Chandrapur.
+TXN0020,George Sampath,Chaitanya Aggarwal,5242786801,Jalgaon,352377,2026-02-10T21:00:00,True,George Sampath sent Rs 352377 to Chaitanya Aggarwal from account 5242786801 in Jalgaon.
+TXN0021,Kala Divan,Joshua Barman,4505331586,Patiala,308735,2026-01-04T12:00:00,True,Kala Divan sent Rs 308735 to Joshua Barman from account 4505331586 in Patiala.
+TXN0022,Peter Sachar,Praneel Natarajan,6342160733,Etawah,383961,2026-01-14T05:00:00,True,Peter Sachar sent Rs 383961 to Praneel Natarajan from account 6342160733 in Etawah.
+TXN0023,Vedant Kapoor,Reyansh Rastogi,5414586850,Bhilwara,319733,2026-02-17T21:00:00,True,Vedant Kapoor sent Rs 319733 to Reyansh Rastogi from account 5414586850 in Bhilwara.
+TXN0024,Alka Barad,Radha Pai,5698169340,Mumbai,249331,2026-02-17T05:00:00,True,Alka Barad sent Rs 249331 to Radha Pai from account 5698169340 in Mumbai.
+TXN0025,Januja Sankar,Ganga Murthy,1484656482,Bidar,283166,2026-02-18T14:00:00,True,Januja Sankar sent Rs 283166 to Ganga Murthy from account 1484656482 in Bidar.
+TXN0026,Owen Mitra,Aadi Modi,4369957773,Gulbarga,197481,2026-01-23T06:00:00,False,Owen Mitra sent Rs 197481 to Aadi Modi from account 4369957773 in Gulbarga.
+TXN0027,Bhanumati Varma,Girik Keer,4332003791,Vijayanagaram,168365,2026-02-19T11:00:00,False,Bhanumati Varma sent Rs 168365 to Girik Keer from account 4332003791 in Vijayanagaram.
+TXN0028,Leena Talwar,Yagnesh Divan,0163287083,Sirsa,85314,2026-01-11T13:00:00,False,Leena Talwar sent Rs 85314 to Yagnesh Divan from account 0163287083 in Sirsa.
+TXN0029,Ucchal Wali,Saanvi Thaman,6872774348,Mathura,301126,2026-01-07T02:00:00,True,Ucchal Wali sent Rs 301126 to Saanvi Thaman from account 6872774348 in Mathura.
+TXN0030,Ria Brahmbhatt,Wahab Magar,5581223623,Vijayanagaram,275707,2026-01-22T19:00:00,True,Ria Brahmbhatt sent Rs 275707 to Wahab Magar from account 5581223623 in Vijayanagaram.

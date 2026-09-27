@@ -1,0 +1,7 @@
+presidio-analyzer
+presidio-anonymizer
+pandas
+cryptography
+faker
+fastapi
+uvicorn

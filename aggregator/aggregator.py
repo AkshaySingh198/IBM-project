@@ -12,11 +12,20 @@ def aggregate_results(pattern_result, graph_result, person3_result):
     kyc_match = kyc_result.get("match_found", False)
     behavioral_anomaly = behavioral_result.get("is_anomaly", False)
 
+    risk_result = calculate_risk_score(
+        pattern_flag,
+        graph_ring,
+        kyc_match,
+        behavioral_anomaly
+    )
+
     return {
         "pattern_flag": pattern_flag,
         "graph_ring_size": graph_ring,
         "kyc_match": kyc_match,
-        "behavioral_anomaly": behavioral_anomaly
+        "behavioral_anomaly": behavioral_anomaly,
+        "risk_score": risk_result["risk_score"],
+        "risk_level": risk_result["risk_level"]
     }
 
 

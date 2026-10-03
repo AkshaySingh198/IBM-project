@@ -18,3 +18,40 @@ def aggregate_results(pattern_result, graph_result, person3_result):
         "kyc_match": kyc_match,
         "behavioral_anomaly": behavioral_anomaly
     }
+
+
+def calculate_risk_score(
+    pattern_flag,
+    graph_ring_size,
+    kyc_match,
+    behavioral_anomaly
+):
+    """
+    Calculates a 0-100 risk score from four investigation signals.
+    """
+
+    score = 0
+
+    if pattern_flag:
+        score += 30
+
+    if kyc_match:
+        score += 30
+
+    if behavioral_anomaly:
+        score += 30
+
+    if graph_ring_size > 0:
+        score += 10
+
+    if score >= 60:
+        level = "HIGH"
+    elif score >= 30:
+        level = "MEDIUM"
+    else:
+        level = "LOW"
+
+    return {
+        "risk_score": score,
+        "risk_level": level
+    }

@@ -1,0 +1,39 @@
+name: Pattern Graph Integration Test
+
+on:
+  push:
+    paths:
+      - "pattern-agent/**"
+      - "aggregator/integration_test.py"
+      - ".github/workflows/integration.yml"
+  pull_request:
+    paths:
+      - "pattern-agent/**"
+      - "aggregator/integration_test.py"
+      - ".github/workflows/integration.yml"
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Pattern Agent dependencies
+        run: pip install -r pattern-agent/requirements.txt
+
+      - name: Build ChromaDB index and start Pattern Agent
+        run: |
+          cd pattern-agent
+          python build_index.py
+          uvicorn main:app --host 127.0.0.1 --port 8001 > /tmp/pattern-agent.log 2>&1 &
+          sleep 15
+
+      - name: Run integration test
+        run: python aggregator/integration_test.py

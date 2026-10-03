@@ -27,6 +27,9 @@ result = aggregate_results(
 
 print("Test 1:", result)
 
+assert result["risk_score"] == 0
+assert result["risk_level"] == "LOW"
+
 
 # Test 2: All risk signals
 pattern_result = {
@@ -53,3 +56,9 @@ result = aggregate_results(
 )
 
 print("Test 2:", result)
+
+assert result["risk_score"] == 100
+assert result["risk_level"] == "HIGH"
+
+
+print("All aggregator tests passed!")

@@ -1,15 +1,18 @@
+
 name: Pattern Graph Integration Test
 
 on:
   push:
     paths:
       - "pattern-agent/**"
-      - "aggregator/integration_test.py"
+      - "kyc-behavioral-agent/**"
+      - "aggregator/**"
       - ".github/workflows/integration.yml"
   pull_request:
     paths:
       - "pattern-agent/**"
-      - "aggregator/integration_test.py"
+      - "kyc-behavioral-agent/**"
+      - "aggregator/**"
       - ".github/workflows/integration.yml"
 
 jobs:
@@ -27,6 +30,14 @@ jobs:
 
       - name: Install Pattern Agent dependencies
         run: pip install -r pattern-agent/requirements.txt
+
+      - name: Install Person 3 dependencies
+        run: pip install pandas numpy scikit-learn rapidfuzz
+
+      - name: Generate behavioral training data
+        run: |
+          cd kyc-behavioral-agent
+          python generate_behavioral_data.py
 
       - name: Build ChromaDB index and start Pattern Agent
         run: |

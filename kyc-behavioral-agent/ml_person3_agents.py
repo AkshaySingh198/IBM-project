@@ -1,56 +1,34 @@
-"""
-ML Person 3 — KYC/Sanctions Agent + Behavioral Agent
-IBM Z Datathon — Zero-Exposure Fraud Investigation Copilot
 
-This module exposes ONE function for the Aggregator to call per case:
-
-    investigate_transaction(entity_token, transaction_row)
-
-Input:
-    entity_token     : str  — tokenized entity ID (e.g. "PERSON_0042")
-    transaction_row  : pandas DataFrame with ONE row, same feature columns
-                        used in training (Time, V1-V28, Amount — NOT 'Class')
-
-Output: nested dict —
-    {
-        "entity_token": str,
-        "kyc_agent": {
-            "match_found": bool,
-            "matched_entity": str or None,
-            "similarity_score": float,
-            "verdict": str
-        },
-        "behavioral_agent": {
-            "is_anomaly": bool,
-            "anomaly_score": float,
-            "verdict": str
-        }
-    }
-
-Dependencies: pandas, scikit-learn, rapidfuzz
-    pip install pandas scikit-learn rapidfuzz
-"""
-
+import os
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 from rapidfuzz import fuzz
 
-# ----------------------------------------------------------------------
-# CONFIG — adjust paths / values as needed
-# ----------------------------------------------------------------------
-DATA_PATH = "creditcard.csv"          # training data used to fit the Behavioral Agent
-CONTAMINATION = 0.003                 # tuned value — see notebook for sweep results
-KYC_MATCH_THRESHOLD = 90              # fuzzy match % required to flag a watchlist hit
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = os.path.join(BASE_DIR, "behavioral_training_data.csv")
 
-# Mock watchlist — replace with real tokenized watchlist from the vault team (ML Person 1)
-WATCHLIST = ["PERSON_0042", "PERSON_0198", "PERSON_0753", "PERSON_1200"]
+CONTAMINATION = 0.03
+KYC_MATCH_THRESHOLD = 90
 
+# Temporary watchlist; later connect Person 1's tokenized watchlist.
+WATCHLIST = [
+    "PERSON_0042",
+    "PERSON_0198",
+    "PERSON_0753",
+    "PERSON_1200"
+]
 
-# ----------------------------------------------------------------------
-# BEHAVIORAL AGENT — trained once at import time
-# ----------------------------------------------------------------------
+FEATURES = [
+    "Amount",
+    "FailedLoginAttempts",
+    "FilesAccessed",
+    "SessionDuration",
+    "AfterHoursAccess",
+    "ExternalDevice"
+]
+
 _df = pd.read_csv(DATA_PATH)
-_features = _df.drop(columns=["Class"])
+_features = _df[FEATURES].copy()
 
 behavioral_model = IsolationForest(
     n_estimators=100,
@@ -61,23 +39,36 @@ behavioral_model.fit(_features)
 
 
 def score_transaction(transaction_row, model=behavioral_model):
-    """Scores a single transaction for behavioral anomaly."""
-    pred = model.predict(transaction_row)[0]
-    raw_score = model.decision_function(transaction_row)[0]  # lower = more anomalous
-    is_anomaly = (pred == -1)
+    if isinstance(transaction_row, dict):
+        row = pd.DataFrame([transaction_row])
+    elif isinstance(transaction_row, pd.DataFrame):
+        row = transaction_row.copy()
+    else:
+        raise TypeError("transaction_row must be a dict or DataFrame")
+
+    missing = [col for col in FEATURES if col not in row.columns]
+    if missing:
+        raise ValueError(f"Missing behavioral features: {missing}")
+
+    row = row[FEATURES].apply(pd.to_numeric, errors="raise")
+    pred = model.predict(row)[0]
+    raw_score = model.decision_function(row)[0]
+    is_anomaly = pred == -1
 
     return {
         "is_anomaly": bool(is_anomaly),
         "anomaly_score": round(float(raw_score), 4),
-        "verdict": "FLAGGED - unusual transaction pattern" if is_anomaly else "NORMAL"
+        "verdict": (
+            "FLAGGED - unusual transaction pattern"
+            if is_anomaly else "NORMAL"
+        )
     }
 
 
-# ----------------------------------------------------------------------
-# KYC / SANCTIONS AGENT
-# ----------------------------------------------------------------------
-def kyc_check(entity_token, watchlist=WATCHLIST, threshold=KYC_MATCH_THRESHOLD):
-    """Fuzzy-matches a tokenized entity against the watchlist."""
+def kyc_check(entity_token, watchlist=None, threshold=KYC_MATCH_THRESHOLD):
+    if watchlist is None:
+        watchlist = WATCHLIST
+
     best_match = None
     best_score = 0
 
@@ -97,30 +88,14 @@ def kyc_check(entity_token, watchlist=WATCHLIST, threshold=KYC_MATCH_THRESHOLD):
     }
 
 
-# ----------------------------------------------------------------------
-# COMBINED ENTRY POINT — this is what the Aggregator (ML Person 4) calls
-# ----------------------------------------------------------------------
 def investigate_transaction(entity_token, transaction_row):
-    """
-    Single entry point for the Aggregator.
-    Runs both KYC/Sanctions and Behavioral checks on one case.
-    """
-    kyc_result = kyc_check(entity_token)
-    behavioral_result = score_transaction(transaction_row)
-
     return {
         "entity_token": entity_token,
-        "kyc_agent": kyc_result,
-        "behavioral_agent": behavioral_result
+        "kyc_agent": kyc_check(entity_token),
+        "behavioral_agent": score_transaction(transaction_row)
     }
 
 
-# ----------------------------------------------------------------------
-# Quick self-test when run directly (not on import)
-# ----------------------------------------------------------------------
 if __name__ == "__main__":
-    fraud_index = _df[_df["Class"] == 1].index[0]
-    test_row = _features.loc[[fraud_index]]
-    result = investigate_transaction("PERSON_0042", test_row)
-    print("Sample fraud case result:")
-    print(result)
+    sample = _features.iloc[[0]]
+    print(investigate_transaction("PERSON_0042", sample))

@@ -1,79 +1,103 @@
+def aggregate_results(pattern_result, graph_result, person3_result):
+    """Combine agent results into an explainable risk assessment."""
 
-from aggregator import aggregate_results
+    pattern_flag = bool(pattern_result.get("flag", False))
+    graph_ring = int(graph_result.get("ring_size", 0) or 0)
 
+    kyc_result = person3_result.get("kyc_agent", {})
+    behavioral_result = person3_result.get("behavioral_agent", {})
 
-# Test 1: No risk signals
-pattern_result = {
-    "flag": False,
-    "explanation": "No strong pattern match found"
-}
+    kyc_match = bool(kyc_result.get("match_found", False))
+    behavioral_anomaly = bool(behavioral_result.get("is_anomaly", False))
 
-graph_result = {
-    "entity_token": "PERSON_001",
-    "ring_size": 0,
-    "linked_tokens": []
-}
+    score, level = calculate_risk_score(
+        pattern_flag, graph_ring, kyc_match, behavioral_anomaly
+    )
 
-person3_result = {
-    "entity_token": "PERSON_001",
-    "kyc_agent": {
-        "match_found": False,
-        "verdict": "NO MATCH"
-    },
-    "behavioral_agent": {
-        "is_anomaly": False,
-        "verdict": "NORMAL"
+    signals = {
+        "pattern_flag": pattern_flag,
+        "pattern_explanation": pattern_result.get(
+            "explanation", "No strong pattern match found"
+        ),
+        "graph_ring_size": graph_ring,
+        "linked_tokens": graph_result.get("linked_tokens", []),
+        "kyc_match": kyc_match,
+        "kyc_verdict": kyc_result.get("verdict", "Not provided"),
+        "behavioral_anomaly": behavioral_anomaly,
+        "behavioral_verdict": behavioral_result.get(
+            "verdict", "Not provided"
+        ),
     }
-}
 
-result = aggregate_results(pattern_result, graph_result, person3_result)
+    evidence = []
 
-print("Test 1:", result)
+    if pattern_flag:
+        evidence.append({
+            "source": "Pattern Agent",
+            "finding": signals["pattern_explanation"],
+        })
 
-assert result["risk_score"] == 0
-assert result["risk_level"] == "LOW"
-assert result["entity_token"] == "PERSON_001"
-assert result["signals"]["pattern_flag"] is False
-assert len(result["evidence"]) == 1
-assert result["human_review_required"] is False
+    if graph_ring > 0:
+        evidence.append({
+            "source": "Graph Agent",
+            "finding": f"{graph_ring} linked entities detected",
+            "linked_tokens": signals["linked_tokens"],
+        })
 
+    if kyc_match:
+        evidence.append({
+            "source": "KYC Agent",
+            "finding": signals["kyc_verdict"],
+        })
 
-# Test 2: All risk signals
-pattern_result = {
-    "flag": True,
-    "explanation": "Strong similarity with a past fraud case"
-}
+    if behavioral_anomaly:
+        evidence.append({
+            "source": "Behavioral Agent",
+            "finding": signals["behavioral_verdict"],
+        })
 
-graph_result = {
-    "entity_token": "PERSON_001",
-    "ring_size": 2,
-    "linked_tokens": ["PERSON_004", "PERSON_007"]
-}
+    if not evidence:
+        evidence.append({
+            "source": "Investigation",
+            "finding": "No risk signals detected by current checks",
+        })
 
-person3_result = {
-    "entity_token": "PERSON_001",
-    "kyc_agent": {
-        "match_found": True,
-        "verdict": "WATCHLIST MATCH"
-    },
-    "behavioral_agent": {
-        "is_anomaly": True,
-        "verdict": "FLAGGED - unusual behavior"
+    return {
+        "entity_token": person3_result.get(
+            "entity_token", graph_result.get("entity_token")
+        ),
+        "risk_score": score,
+        "risk_level": level,
+        "score_type": "Demo heuristic; not a validated fraud probability",
+        "signals": signals,
+        "evidence": evidence,
+        "recommended_next_action": (
+            "Prioritize human investigator review"
+            if level == "HIGH"
+            else "Review flagged evidence"
+            if level == "MEDIUM"
+            else "Continue normal monitoring"
+        ),
+        "human_review_required": level in ("HIGH", "MEDIUM"),
     }
-}
-
-result = aggregate_results(pattern_result, graph_result, person3_result)
-
-print("Test 2:", result)
-
-assert result["risk_score"] == 100
-assert result["risk_level"] == "HIGH"
-assert result["signals"]["pattern_flag"] is True
-assert result["signals"]["kyc_match"] is True
-assert result["signals"]["behavioral_anomaly"] is True
-assert len(result["evidence"]) == 4
-assert len(result["linked_tokens"]) == 2
-assert result["human_review_required"] is True
 
 
-print("All aggregator tests passed!")
+def calculate_risk_score(
+    pattern_flag, graph_ring_size, kyc_match, behavioral_anomaly
+):
+    """Demo scoring rule; not a validated fraud probability."""
+
+    score = 0
+    score += 30 if pattern_flag else 0
+    score += 30 if kyc_match else 0
+    score += 30 if behavioral_anomaly else 0
+    score += 10 if graph_ring_size > 0 else 0
+
+    if score >= 60:
+        level = "HIGH"
+    elif score >= 30:
+        level = "MEDIUM"
+    else:
+        level = "LOW"
+
+    return score, level

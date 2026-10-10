@@ -1,4 +1,3 @@
-
 from aggregator import aggregate_results
 
 
@@ -73,4 +72,59 @@ assert len(result["evidence"]) == 4
 assert len(result["linked_tokens"]) == 2
 
 
-print("All aggregator tests passed!")
+# Test 3: Pattern signal only
+result = aggregate_results(
+    {"flag": True, "explanation": "Pattern detected"},
+    {"entity_token": "PERSON_001", "ring_size": 0, "linked_tokens": []},
+    {
+        "entity_token": "PERSON_001",
+        "kyc_agent": {"match_found": False},
+        "behavioral_agent": {"is_anomaly": False}
+    }
+)
+
+print("Test 3:", result)
+assert result["risk_score"] == 30
+assert result["risk_level"] == "MEDIUM"
+
+
+# Test 4: Behavioral anomaly only
+result = aggregate_results(
+    {"flag": False},
+    {"entity_token": "PERSON_001", "ring_size": 0, "linked_tokens": []},
+    {
+        "entity_token": "PERSON_001",
+        "kyc_agent": {"match_found": False},
+        "behavioral_agent": {
+            "is_anomaly": True,
+            "verdict": "Unusual behavior"
+        }
+    }
+)
+
+print("Test 4:", result)
+assert result["risk_score"] == 30
+assert result["risk_level"] == "MEDIUM"
+
+
+# Test 5: Graph signal only
+result = aggregate_results(
+    {"flag": False},
+    {
+        "entity_token": "PERSON_001",
+        "ring_size": 2,
+        "linked_tokens": ["PERSON_004"]
+    },
+    {
+        "entity_token": "PERSON_001",
+        "kyc_agent": {"match_found": False},
+        "behavioral_agent": {"is_anomaly": False}
+    }
+)
+
+print("Test 5:", result)
+assert result["risk_score"] == 10
+assert result["risk_level"] == "LOW"
+
+
+print("All 5 aggregator tests passed!")

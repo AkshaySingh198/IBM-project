@@ -1,63 +1,27 @@
-import requests
-from aggregator import aggregate_results
+# Person 3: Real KYC + Behavioral Agent
+import os
+import sys
+import pandas as pd
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PERSON3_DIR = os.path.join(BASE_DIR, "kyc-behavioral-agent")
+sys.path.insert(0, PERSON3_DIR)
 
-PATTERN_URL = "http://127.0.0.1:8001/pattern-agent/analyze"
-GRAPH_URL = "http://127.0.0.1:8001/graph-agent/linked/PERSON_001"
+from ml_person3_agents import investigate_transaction, FEATURES
 
-
-case = {
-    "case_id": "TEST_001",
-    "sender": "PERSON_001",
-    "receiver": "PERSON_045",
-    "amount": 50000,
-    "narrative": "High value transfer to new recipient from unusual device"
+sample_transaction = {
+    "Amount": 50000,
+    "FailedLoginAttempts": 5,
+    "FilesAccessed": 30,
+    "SessionDuration": 180,
+    "AfterHoursAccess": 1,
+    "ExternalDevice": 1
 }
 
-
-# Pattern Agent
-pattern_response = requests.post(
-    PATTERN_URL,
-    json=case,
-    timeout=10
+person3_result = investigate_transaction(
+    case["sender"],
+    sample_transaction
 )
 
-pattern_result = pattern_response.json()
-
-print("PATTERN RESULT:")
-print(pattern_result)
-
-
-# Graph Agent
-graph_response = requests.get(
-    GRAPH_URL,
-    timeout=10
-)
-
-graph_result = graph_response.json()
-
-print("\nGRAPH RESULT:")
-print(graph_result)
-
-
-# Temporary Person 3 result
-# Will be replaced with the real KYC + Behavioral Agent output later.
-person3_result = {
-    "kyc_agent": {
-        "match_found": False
-    },
-    "behavioral_agent": {
-        "is_anomaly": False
-    }
-}
-
-
-# Aggregator
-aggregated_result = aggregate_results(
-    pattern_result,
-    graph_result,
-    person3_result
-)
-
-print("\nAGGREGATOR RESULT:")
-print(aggregated_result)
+print("\nPERSON 3 RESULT:")
+print(person3_result)

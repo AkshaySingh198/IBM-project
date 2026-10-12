@@ -1,0 +1,124 @@
+{
+  "tokenized_transactions": [
+    {
+      "original": "Aryan Maharaj sent Rs 453503 to Udant Dewan from account 1819600133 in Kishanganj.",
+      "tokenized": "PERSON_001 sent Rs 453503 to Udant Dewan from account ACCOUNT_NUMBER_001 in LOCATION_001."
+    },
+    {
+      "original": "Oni Kannan sent Rs 126005 to Arunima Ahuja from account 2654235116 in Secunderabad.",
+      "tokenized": "PERSON_003 sent Rs 126005 to PERSON_002 from account ACCOUNT_NUMBER_002 in LOCATION_002."
+    },
+    {
+      "original": "Aishani Bassi sent Rs 252649 to Jeet Radhakrishnan from account 1849593103 in Vijayawada.",
+      "tokenized": "PERSON_005 sent Rs 252649 to PERSON_004 from account ACCOUNT_NUMBER_003 in LOCATION_003."
+    },
+    {
+      "original": "Harrison Rai sent Rs 211340 to Sudiksha Patla from account 2553419283 in Surendranagar Dudhrej.",
+      "tokenized": "PERSON_007 sent Rs 211340 to Sudiksha Patla from account ACCOUNT_NUMBER_004 in PERSON_006."
+    },
+    {
+      "original": "Anamika Kanda sent Rs 246475 to Daksh Karnik from account 0564139537 in Berhampore.",
+      "tokenized": "PERSON_009 sent Rs 246475 to PERSON_008 from account ACCOUNT_NUMBER_005 in LOCATION_004."
+    },
+    {
+      "original": "Gabriel Krishnamurthy sent Rs 264383 to Alka Dewan from account 3884969653 in Danapur.",
+      "tokenized": "PERSON_011 sent Rs 264383 to PERSON_010 from account ACCOUNT_NUMBER_006 in LOCATION_005."
+    },
+    {
+      "original": "Gavin Batta sent Rs 242521 to Michael Dutta from account 6916697848 in Raipur.",
+      "tokenized": "PERSON_013 sent Rs 242521 to PERSON_012 from account ACCOUNT_NUMBER_007 in LOCATION_006."
+    },
+    {
+      "original": "Harini Choudhury sent Rs 107978 to Radhika Dugar from account 7048281489 in Jamnagar.",
+      "tokenized": "PERSON_015 sent Rs 107978 to PERSON_014 from account ACCOUNT_NUMBER_008 in LOCATION_007."
+    },
+    {
+      "original": "Neel Zacharia sent Rs 434830 to Ekiya Suresh from account 0154303911 in Coimbatore.",
+      "tokenized": "PERSON_016 sent Rs 434830 to Ekiya Suresh from account ACCOUNT_NUMBER_009 in LOCATION_008."
+    },
+    {
+      "original": "Kabir Soman sent Rs 98823 to Alka Wable from account 9638346578 in Jamshedpur.",
+      "tokenized": "PERSON_018 sent Rs 98823 to PERSON_017 from account ACCOUNT_NUMBER_010 in LOCATION_009."
+    },
+    {
+      "original": "Umang Bhatt sent Rs 133723 to Ansh Karpe from account 9301031051 in Alwar.",
+      "tokenized": "PERSON_020 sent Rs 133723 to PERSON_019 from account ACCOUNT_NUMBER_011 in Alwar."
+    },
+    {
+      "original": "Tanish Zacharia sent Rs 63090 to Urvashi Kibe from account 7631165667 in Navi Mumbai.",
+      "tokenized": "Tanish Zacharia sent Rs 63090 to PERSON_021 from account ACCOUNT_NUMBER_012 in Navi Mumbai."
+    },
+    {
+      "original": "Neha Nori sent Rs 466826 to Yuvraj Handa from account 3872624731 in Jamalpur.",
+      "tokenized": "PERSON_023 sent Rs 466826 to PERSON_022 from account ACCOUNT_NUMBER_013 in LOCATION_010."
+    },
+    {
+      "original": "Chandresh Zachariah sent Rs 197796 to Girik Khalsa from account 2677360260 in Bilaspur.",
+      "tokenized": "Chandresh Zachariah sent Rs 197796 to PERSON_024 from account ACCOUNT_NUMBER_014 in LOCATION_011."
+    },
+    {
+      "original": "Bhavika Sampath sent Rs 35070 to Mohammed Gupta from account 4309805009 in Ambala.",
+      "tokenized": "Bhavika Sampath sent Rs 35070 to PERSON_025 from account ACCOUNT_NUMBER_015 in LOCATION_012."
+    },
+    {
+      "original": "Gabriel Krishnamurthy sent Rs 352643 to Dakshesh Trivedi from account 1219136193 in Udupi.",
+      "tokenized": "PERSON_011 sent Rs PHONE_NUMBER_001 to PERSON_026 from account ACCOUNT_NUMBER_016 in LOCATION_013."
+    },
+    {
+      "original": "Oni Virk sent Rs 411893 to Advika Jayaraman from account 5346247510 in Phusro.",
+      "tokenized": "PERSON_028 sent Rs 411893 to PERSON_027 from account ACCOUNT_NUMBER_017 in Phusro."
+    },
+    {
+      "original": "Ethan Yogi sent Rs 62883 to Yashawini Lanka from account 2513542784 in Begusarai.",
+      "tokenized": "PERSON_029 sent Rs 62883 to LOCATION_015 from account ACCOUNT_NUMBER_018 in LOCATION_014."
+    },
+    {
+      "original": "Hemang Desai sent Rs 74558 to Jack Chhabra from account 8244935348 in Chandrapur.",
+      "tokenized": "PERSON_031 sent Rs 74558 to PERSON_030 from account ACCOUNT_NUMBER_019 in LOCATION_016."
+    },
+    {
+      "original": "George Sampath sent Rs 469927 to Chaitanya Aggarwal from account 5242786801 in Jalgaon.",
+      "tokenized": "PERSON_033 sent Rs 469927 to PERSON_032 from account ACCOUNT_NUMBER_020 in LOCATION_017."
+    },
+    {
+      "original": "Kala Divan sent Rs 424724 to Joshua Barman from account 4505331586 in Patiala.",
+      "tokenized": "PERSON_035 sent Rs 424724 to PERSON_034 from account ACCOUNT_NUMBER_021 in LOCATION_018."
+    },
+    {
+      "original": "Peter Sachar sent Rs 145594 to Praneel Natarajan from account 6342160733 in Etawah.",
+      "tokenized": "PERSON_037 sent Rs 145594 to PERSON_036 from account ACCOUNT_NUMBER_022 in LOCATION_019."
+    },
+    {
+      "original": "Vedant Kapoor sent Rs 94812 to Reyansh Rastogi from account 5414586850 in Bhilwara.",
+      "tokenized": "PERSON_039 sent Rs 94812 to PERSON_038 from account ACCOUNT_NUMBER_023 in LOCATION_020."
+    },
+    {
+      "original": "Alka Barad sent Rs 488419 to Radha Pai from account 5698169340 in Mumbai.",
+      "tokenized": "PERSON_041 sent Rs 488419 to PERSON_040 from account ACCOUNT_NUMBER_024 in LOCATION_021."
+    },
+    {
+      "original": "Januja Sankar sent Rs 453029 to Ganga Murthy from account 1484656482 in Bidar.",
+      "tokenized": "PERSON_044 sent Rs 453029 to PERSON_043 from account ACCOUNT_NUMBER_025 in PERSON_042."
+    },
+    {
+      "original": "Owen Mitra sent Rs 420731 to Aadi Modi from account 4369957773 in Gulbarga.",
+      "tokenized": "PERSON_047 sent Rs 420731 to PERSON_046 from account ACCOUNT_NUMBER_026 in PERSON_045."
+    },
+    {
+      "original": "Bhanumati Varma sent Rs 18635 to Girik Keer from account 4332003791 in Vijayanagaram.",
+      "tokenized": "PERSON_049 sent Rs 18635 to PERSON_048 from account ACCOUNT_NUMBER_027 in LOCATION_022."
+    },
+    {
+      "original": "Leena Talwar sent Rs 277249 to Yagnesh Divan from account 0163287083 in Sirsa.",
+      "tokenized": "PERSON_051 sent Rs 277249 to PERSON_050 from account ACCOUNT_NUMBER_028 in Sirsa."
+    },
+    {
+      "original": "Ucchal Wali sent Rs 341559 to Saanvi Thaman from account 6872774348 in Mathura.",
+      "tokenized": "PERSON_053 sent Rs 341559 to PERSON_052 from account ACCOUNT_NUMBER_029 in LOCATION_023."
+    },
+    {
+      "original": "Ria Brahmbhatt sent Rs 75632 to Wahab Magar from account 5581223623 in Vijayanagaram.",
+      "tokenized": "PERSON_055 sent Rs 75632 to PERSON_054 from account ACCOUNT_NUMBER_030 in LOCATION_022."
+    }
+  ]
+}

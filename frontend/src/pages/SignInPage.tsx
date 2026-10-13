@@ -247,9 +247,9 @@ export const SignInPage: React.FC = () => {
           {/* Credentials Form */}
           <form
             onSubmit={handleSubmit}
-            style={{ display: 'flex', flexDirection: 'column', gap: '1.125rem' }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '1.125rem', width: '100%' }}
           >
-            <div>
+            <div style={{ width: '100%' }}>
               <label
                 htmlFor="signin-email"
                 style={{
@@ -271,7 +271,9 @@ export const SignInPage: React.FC = () => {
                 required
                 autoComplete="username"
                 style={{
+                  display: 'block',
                   width: '100%',
+                  boxSizing: 'border-box',
                   padding: '0.625rem 0.875rem',
                   borderRadius: 'var(--radius-md)',
                   border: '1px solid var(--line)',
@@ -282,7 +284,7 @@ export const SignInPage: React.FC = () => {
               />
             </div>
 
-            <div>
+            <div style={{ width: '100%' }}>
               <label
                 htmlFor="signin-password"
                 style={{
@@ -304,7 +306,9 @@ export const SignInPage: React.FC = () => {
                 required
                 autoComplete="current-password"
                 style={{
+                  display: 'block',
                   width: '100%',
+                  boxSizing: 'border-box',
                   padding: '0.625rem 0.875rem',
                   borderRadius: 'var(--radius-md)',
                   border: '1px solid var(--line)',

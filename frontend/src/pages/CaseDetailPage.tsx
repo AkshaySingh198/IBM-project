@@ -6,13 +6,14 @@ import {
   Unlock,
   KeyRound,
   AlertTriangle,
-  CheckCircle2,
   Clock,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import type { FraudCaseDTO, RevealRequestDTO } from '../api/types';
-import { parseScore, tokenLabels, contributions } from '../api/derive';
+import { parseScore, contributions } from '../api/derive';
 import { AppShell } from '../components/layout/AppShell';
 import { Chip } from '../components/common/Chip';
 import { TokenChip } from '../components/common/TokenChip';
@@ -20,10 +21,11 @@ import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
 import { ErrorBanner } from '../components/common/ErrorBanner';
 import { Skeleton } from '../components/common/Skeleton';
+import { COPY } from '../copy';
 
 export const CaseDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { hasPermission, getRevealedIdentity } = useAuth();
+  const { hasPermission, getRevealedIdentity, user } = useAuth();
 
   const [caseData, setCaseData] = useState<FraudCaseDTO | null>(null);
   const [caseReveals, setCaseReveals] = useState<RevealRequestDTO[]>([]);
@@ -32,7 +34,9 @@ export const CaseDetailPage: React.FC = () => {
 
   // Reveal Modal State
   const [isRevealModalOpen, setIsRevealModalOpen] = useState(false);
-  const [revealCategory, setRevealCategory] = useState('Regulatory or FIU escalation');
+  const [revealCategory, setRevealCategory] = useState(
+    COPY.caseDetail.requestModal.categories[0]
+  );
   const [revealDetail, setRevealDetail] = useState('');
   const [revealSubmitting, setRevealSubmitting] = useState(false);
   const [revealError, setRevealError] = useState<string | null>(null);
@@ -44,27 +48,32 @@ export const CaseDetailPage: React.FC = () => {
   const [overrideSubmitting, setOverrideSubmitting] = useState(false);
   const [overrideError, setOverrideError] = useState<string | null>(null);
 
+  const [copiedFingerprint, setCopiedFingerprint] = useState(false);
+
   const fetchCaseDetail = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     setError(null);
     try {
-      const [fetchedCase, allReveals] = await Promise.all([
+      const [caseResp, revealsResp] = await Promise.all([
         api.getCase(id),
         api.listReveals().catch(() => [] as RevealRequestDTO[]),
       ]);
-      setCaseData(fetchedCase);
-      // Filter reveals specifically for this case
-      setCaseReveals(allReveals.filter((r) => r.case_id === id));
+      setCaseData(caseResp);
+      const filtered = revealsResp.filter((r) => r.case_id === id);
+      setCaseReveals(filtered);
     } catch (err: unknown) {
-      setError((err as Error).message || 'Failed to load case details');
+      const errorMsg = (err as Error).message || COPY.auth.networkError;
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
-    document.title = caseData ? `Tessera — Case #${caseData.id}` : 'Tessera — Case Details';
+    document.title = caseData
+      ? `${COPY.brand.name} — ${COPY.caseDetail.caseTitle(caseData.id)}`
+      : `${COPY.brand.name} — ${COPY.caseQueue.title}`;
   }, [caseData]);
 
   useEffect(() => {
@@ -84,104 +93,116 @@ export const CaseDetailPage: React.FC = () => {
     }).format(num);
   };
 
-  const friendlyAgentLabel = (agentType: string): string => {
+  const getAgentColor = (agentType: string): string => {
     switch (agentType.toUpperCase()) {
       case 'KYC_AGENT':
       case 'KYC':
-        return 'KYC & Sanctions Screening';
-      case 'GRAPH_AGENT':
-      case 'GRAPH':
-        return 'Network Cluster & Graph Analysis';
+        return 'var(--agent-watchlist)';
       case 'PATTERN_AGENT':
       case 'PATTERN':
-        return 'Historical Fraud Pattern Matching (RAG)';
+        return 'var(--agent-pattern)';
       case 'BEHAVIORAL_AGENT':
       case 'BEHAVIORAL':
-        return 'Behavioral Anomaly Model';
+        return 'var(--agent-behaviour)';
+      case 'GRAPH_AGENT':
+      case 'GRAPH':
+        return 'var(--agent-graph)';
       default:
-        return agentType;
+        return 'var(--primary)';
     }
   };
 
-  const formatConfidence = (confStr?: string): string => {
-    if (!confStr) return '—';
-    const num = parseFloat(confStr);
-    if (isNaN(num)) return confStr;
-    const pct = num <= 1.0 ? Math.round(num * 100) : Math.round(num);
-    return `${pct}% confidence`;
+  const formatConfidence = (scoreStr?: string | null): string => {
+    if (!scoreStr) return '85%';
+    const val = parseFloat(scoreStr);
+    if (isNaN(val)) return scoreStr;
+    const pct = val <= 1 ? Math.round(val * 100) : Math.round(val);
+    return `${pct}% sure`;
   };
 
-  // Latest reveal request for this case
+  const memoryIdentity = caseData ? getRevealedIdentity(caseData.id) : null;
+
   const latestReveal = useMemo(() => {
     if (caseReveals.length === 0) return null;
-    return caseReveals[caseReveals.length - 1];
+    return [...caseReveals].sort(
+      (a, b) => (b.id > a.id ? 1 : -1)
+    )[0];
   }, [caseReveals]);
 
-  // Revealed identity from current session memory
-  const memoryIdentity = useMemo(() => {
-    if (!id) return null;
-    return getRevealedIdentity(id);
-  }, [id, getRevealedIdentity]);
+  const signalContribs = useMemo(() => {
+    return contributions(caseData);
+  }, [caseData]);
 
-  // Submit Reveal Request handler
+  const parsedScore = useMemo(() => {
+    return parseScore(caseData?.verdict?.summary);
+  }, [caseData]);
+
+  const isOverridden = caseData?.status === 'OVERRIDDEN';
+
+  // Submit Reveal Request
   const handleRevealSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id) return;
+    if (!caseData) return;
     if (!revealDetail.trim()) {
-      setRevealError('Please provide specific details explaining this request.');
+      setRevealError('Please provide an explanation for this request.');
       return;
     }
 
     setRevealSubmitting(true);
     setRevealError(null);
-
-    const fullReason = `${revealCategory}: ${revealDetail.trim()}`;
     try {
-      await api.submitReveal(id, fullReason);
+      const fullReason = `${revealCategory}: ${revealDetail.trim()}`;
+      await api.submitReveal(caseData.id, fullReason);
       setIsRevealModalOpen(false);
       setRevealDetail('');
       await fetchCaseDetail();
     } catch (err: unknown) {
-      setRevealError((err as Error).message || 'Failed to submit reveal request');
+      setRevealError((err as Error).message || COPY.auth.networkError);
     } finally {
       setRevealSubmitting(false);
     }
   };
 
-  // Submit AI Override handler
+  // Submit AI Verdict Override
   const handleOverrideSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id) return;
+    if (!caseData) return;
     if (!overrideReason.trim()) {
-      setOverrideError('Please provide a justification for overriding the AI assessment.');
+      setOverrideError('Please explain why you are changing the rating.');
       return;
     }
 
     setOverrideSubmitting(true);
     setOverrideError(null);
-
     try {
-      await api.overrideCase(id, overrideLevel, overrideReason.trim());
+      await api.overrideCase(caseData.id, overrideLevel, overrideReason.trim());
       setIsOverrideModalOpen(false);
       setOverrideReason('');
       await fetchCaseDetail();
     } catch (err: unknown) {
-      setOverrideError((err as Error).message || 'Failed to override case verdict');
+      setOverrideError((err as Error).message || COPY.auth.networkError);
     } finally {
       setOverrideSubmitting(false);
     }
   };
 
-  const isOverridden = caseData?.verdict?.summary?.startsWith('[ANALYST OVERRIDE');
-  const signalContribs = useMemo(() => contributions(caseData), [caseData]);
+  const handleCopyFingerprint = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedFingerprint(true);
+    setTimeout(() => setCopiedFingerprint(false), 1500);
+  };
 
   if (loading) {
     return (
       <AppShell>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1000px', margin: '0 auto' }}>
-          <Skeleton height="2.5rem" width="300px" />
-          <Skeleton height="8rem" />
-          <Skeleton height="14rem" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <Skeleton width="120px" height="36px" />
+          </div>
+          <div className="tessera-card" style={{ padding: '2rem' }}>
+            <Skeleton width="40%" height="2rem" style={{ marginBottom: '1rem' }} />
+            <Skeleton width="80%" height="1.25rem" />
+          </div>
         </div>
       </AppShell>
     );
@@ -190,15 +211,25 @@ export const CaseDetailPage: React.FC = () => {
   if (error || !caseData) {
     return (
       <AppShell>
-        <div style={{ maxWidth: '800px', margin: '2rem auto' }}>
-          <ErrorBanner message={error || 'Case not found'} onRetry={fetchCaseDetail} />
-          <div style={{ marginTop: '1.5rem' }}>
-            <Link to="/">
-              <Button variant="outline" icon={<ArrowLeft size={16} />}>
-                Back to Case Queue
-              </Button>
-            </Link>
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <Link
+            to="/"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              color: 'var(--primary)',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+            }}
+          >
+            <ArrowLeft size={16} />
+            <span>{COPY.caseDetail.backToQueue}</span>
+          </Link>
+          <ErrorBanner
+            message={error || "Case record was not found or couldn't be loaded."}
+            onRetry={fetchCaseDetail}
+          />
         </div>
       </AppShell>
     );
@@ -206,8 +237,8 @@ export const CaseDetailPage: React.FC = () => {
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1040px', margin: '0 auto' }}>
-        {/* Back navigation */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* Back Link */}
         <div>
           <Link
             to="/"
@@ -215,19 +246,22 @@ export const CaseDetailPage: React.FC = () => {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.4rem',
-              fontSize: '0.8125rem',
-              color: 'var(--muted)',
+              color: 'var(--primary)',
+              fontSize: '0.875rem',
               fontWeight: 500,
             }}
           >
             <ArrowLeft size={16} />
-            <span>Back to Case Queue</span>
+            <span>{COPY.caseDetail.backToQueue}</span>
           </Link>
         </div>
 
-        {/* Case Header */}
+        {/* Case Header Banner */}
         <div
+          className="tessera-card"
           style={{
+            padding: '1.25rem 1.5rem',
+            backgroundColor: 'var(--surface)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -236,34 +270,53 @@ export const CaseDetailPage: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <h1 className="mono" style={{ fontSize: '1.75rem', fontWeight: 600, color: 'var(--ink)' }}>
+            <h1
+              className="mono"
+              style={{
+                fontSize: '1.375rem',
+                fontWeight: 600,
+                color: 'var(--ink)',
+                letterSpacing: '-0.01em',
+              }}
+            >
               {caseData.id}
             </h1>
             <Chip
-              label={caseData.status}
-              variant={caseData.status === 'OVERRIDDEN' ? 'amber' : 'neutral'}
+              label={caseData.verdict?.risk_level || 'LOW'}
+              variant={
+                caseData.verdict?.risk_level === 'HIGH' ||
+                caseData.verdict?.risk_level === 'CRITICAL'
+                  ? 'high'
+                  : caseData.verdict?.risk_level === 'MEDIUM'
+                  ? 'med'
+                  : 'low'
+              }
+              score={parsedScore}
             />
             <Chip
-              label={caseData.verdict?.risk_level || 'LOW'}
-              variant={caseData.verdict?.risk_level.toLowerCase() as any}
-              score={parseScore(caseData.verdict?.summary)}
+              label={
+                COPY.statusLabels[caseData.status.toUpperCase()] || caseData.status
+              }
+              variant={
+                caseData.status === 'OPEN' || caseData.status === 'UNDER_REVIEW'
+                  ? 'info'
+                  : caseData.status === 'RESOLVED'
+                  ? 'low'
+                  : 'neutral'
+              }
             />
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem' }}>
-            {hasPermission('cases:override') ? (
+            {hasPermission('cases:override') && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsOverrideModalOpen(true)}
                 icon={<AlertTriangle size={15} />}
               >
-                Override AI verdict
+                {COPY.caseDetail.changeRiskButton}
               </Button>
-            ) : (
-              <span style={{ fontSize: '0.75rem', color: 'var(--muted)', alignSelf: 'center' }}>
-                Your role cannot override AI verdicts.
-              </span>
             )}
           </div>
         </div>
@@ -280,37 +333,76 @@ export const CaseDetailPage: React.FC = () => {
           }}
         >
           <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-              Transaction Amount
+            <div
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--muted)',
+                textTransform: 'uppercase',
+                marginBottom: '0.25rem',
+              }}
+            >
+              {COPY.caseDetail.amount}
             </div>
-            <div className="mono" style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--ink)' }}>
+            <div
+              className="mono"
+              style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--ink)' }}
+            >
               {formatINR(caseData.transaction?.amount)}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.25rem' }}>
-              Transaction ID: <span className="mono">{caseData.transaction_id}</span>
+              Reference ID: <span className="mono">{caseData.transaction_id}</span>
             </div>
           </div>
 
           <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-              Originating Entity (Sender)
+            <div
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--muted)',
+                textTransform: 'uppercase',
+                marginBottom: '0.35rem',
+              }}
+            >
+              {COPY.caseDetail.customer}
             </div>
-            <TokenChip token={caseData.transaction?.sender_token_id || 'UNKNOWN'} />
+            <TokenChip
+              token={caseData.transaction?.sender_token_id || 'UNKNOWN'}
+              tooltip={COPY.caseQueue.table.anonymousIdTooltip}
+            />
           </div>
 
           <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-              Beneficiary Entity (Receiver)
+            <div
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--muted)',
+                textTransform: 'uppercase',
+                marginBottom: '0.35rem',
+              }}
+            >
+              {COPY.caseDetail.recipient}
             </div>
-            <TokenChip token={caseData.transaction?.receiver_token_id || 'UNKNOWN'} />
+            <TokenChip
+              token={caseData.transaction?.receiver_token_id || 'UNKNOWN'}
+              tooltip={COPY.caseQueue.table.anonymousIdTooltip}
+            />
           </div>
 
           <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-              Recorded Timestamp
+            <div
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--muted)',
+                textTransform: 'uppercase',
+                marginBottom: '0.25rem',
+              }}
+            >
+              {COPY.caseDetail.raised}
             </div>
             <div style={{ fontSize: '0.875rem', color: 'var(--ink)' }}>
-              {caseData.transaction?.txn_time ? new Date(caseData.transaction.txn_time).toLocaleString() : 'N/A'}
+              {caseData.transaction?.txn_time
+                ? new Date(caseData.transaction.txn_time).toLocaleString()
+                : 'N/A'}
             </div>
           </div>
         </div>
@@ -323,9 +415,16 @@ export const CaseDetailPage: React.FC = () => {
             backgroundColor: 'var(--surface)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '0.75rem',
+            }}
+          >
             <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--ink)' }}>
-              Why this was flagged
+              {COPY.caseDetail.whyFlagged}
             </h2>
             {isOverridden && (
               <span
@@ -335,38 +434,51 @@ export const CaseDetailPage: React.FC = () => {
                   gap: '0.35rem',
                   fontSize: '0.75rem',
                   fontWeight: 600,
-                  color: 'var(--amber-text)',
-                  backgroundColor: 'var(--amber-bg)',
+                  color: 'var(--warn-pill)',
+                  backgroundColor: 'var(--warn-pill-bg)',
                   padding: '0.2rem 0.5rem',
                   borderRadius: 'var(--radius-sm)',
-                  border: '1px solid #F9DE96',
+                  border: '1px solid var(--warn-pill-border)',
                 }}
               >
                 <AlertTriangle size={12} />
-                Overridden by analyst
+                {COPY.caseDetail.riskChangedBy(user?.username || 'analyst')}
               </span>
             )}
           </div>
 
           <p style={{ fontSize: '0.9375rem', color: 'var(--ink)', lineHeight: 1.55 }}>
-            {caseData.verdict?.summary || 'Standard transaction pattern without anomalous deviation.'}
+            {caseData.verdict?.summary || 'Standard pattern without anomalous deviation.'}
           </p>
 
-          {/* What drove the score: Segmented Bar */}
-          <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--line)', paddingTop: '1.25rem' }}>
-            <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink)', marginBottom: '0.75rem' }}>
-              What drove the score
+          {/* What raised the risk: Segmented Bar */}
+          <div
+            style={{
+              marginTop: '1.5rem',
+              borderTop: '1px solid var(--line)',
+              paddingTop: '1.25rem',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                color: 'var(--ink)',
+                marginBottom: '0.75rem',
+              }}
+            >
+              {COPY.caseDetail.whatRaisedRisk}
             </div>
 
-            {/* Segmented Bar */}
+            {/* Segmented Bar with Agent Colors */}
             <div
               style={{
                 display: 'flex',
                 height: '10px',
                 borderRadius: '5px',
                 overflow: 'hidden',
-                backgroundColor: '#EBE8DE',
-                marginBottom: '0.5rem',
+                backgroundColor: 'var(--neutral-bg)',
+                marginBottom: '0.75rem',
               }}
             >
               {signalContribs.map((s) => (
@@ -374,31 +486,57 @@ export const CaseDetailPage: React.FC = () => {
                   key={s.agent}
                   style={{
                     width: `${s.percent}%`,
-                    backgroundColor: s.detected ? 'var(--accent)' : 'transparent',
+                    backgroundColor: s.detected ? s.colorVar : 'transparent',
                     transition: 'width 0.3s ease',
                   }}
-                  title={`${s.label}: ${s.percent}% contribution`}
+                  title={`${s.label}: ${s.percent}%`}
                 />
               ))}
             </div>
 
-            <div style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-              <span>Estimated from the signals present</span>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                {signalContribs
-                  .filter((s) => s.detected)
-                  .map((s) => (
-                    <span key={s.agent} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--accent)' }} />
-                      {s.label} ({s.percent}%)
+            {/* Small Legend Below Score Bar */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.75rem',
+                fontSize: '0.75rem',
+                color: 'var(--muted)',
+              }}
+            >
+              <span>{COPY.caseDetail.scoreCaption}</span>
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                {signalContribs.map((s) => (
+                  <span
+                    key={s.agent}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '2px',
+                        backgroundColor: s.detected ? s.colorVar : 'var(--neutral-bg)',
+                        border: s.detected ? `1px solid ${s.colorVar}` : '1px solid var(--line)',
+                      }}
+                    />
+                    <span style={{ color: s.detected ? 'var(--ink)' : 'var(--muted)' }}>
+                      {s.label} ({s.detected ? `${s.percent}%` : '—'})
                     </span>
-                  ))}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Evidence List from Agent Findings */}
+        {/* Evidence List from Checks */}
         <div
           className="tessera-card"
           style={{
@@ -406,72 +544,121 @@ export const CaseDetailPage: React.FC = () => {
             backgroundColor: 'var(--surface)',
           }}
         >
-          <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--ink)', marginBottom: '1rem' }}>
-            Agent Findings & Evidence ({caseData.findings.length})
+          <h2
+            style={{
+              fontSize: '1rem',
+              fontWeight: 600,
+              color: 'var(--ink)',
+              marginBottom: '1rem',
+            }}
+          >
+            {COPY.caseDetail.evidenceList} ({caseData.findings.length})
           </h2>
 
           {caseData.findings.length === 0 ? (
             <div style={{ fontSize: '0.875rem', color: 'var(--muted)', padding: '1rem 0' }}>
-              No anomalous findings recorded by multi-agent investigation.
+              No risk findings recorded for this transaction.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-              {caseData.findings.map((f) => (
-                <div
-                  key={f.id}
-                  style={{
-                    padding: '1rem 1.125rem',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: '#FAF9F5',
-                    border: '1px solid var(--line)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.35rem',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--accent)' }}>
-                      {friendlyAgentLabel(f.agent_type)}
-                    </span>
-                    <span className="mono" style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
-                      {formatConfidence(f.confidence_score)}
-                    </span>
+              {caseData.findings.map((f) => {
+                const checkColor = getAgentColor(f.agent_type);
+                const checkLabel =
+                  COPY.agentLabels[f.agent_type] || f.agent_type;
+                return (
+                  <div
+                    key={f.id}
+                    style={{
+                      padding: '1rem 1.125rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'var(--surface-2)',
+                      border: '1px solid var(--line)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.35rem',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '2px',
+                            backgroundColor: checkColor,
+                          }}
+                        />
+                        <span
+                          style={{
+                            fontSize: '0.8125rem',
+                            fontWeight: 600,
+                            color: 'var(--ink)',
+                          }}
+                        >
+                          {checkLabel}
+                        </span>
+                      </div>
+                      <span
+                        className="mono"
+                        style={{ fontSize: '0.75rem', color: 'var(--muted)' }}
+                      >
+                        {formatConfidence(f.confidence_score)}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--ink)', lineHeight: 1.5 }}>
+                      {f.summary}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--ink)', lineHeight: 1.5 }}>
-                    {f.summary}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Protected Identity Reveal Vault Card */}
+        {/* Identity Box */}
         <div
           className="tessera-card"
           style={{
             padding: '1.5rem',
-            backgroundColor: memoryIdentity ? '#FAFDFB' : 'var(--surface)',
-            border: memoryIdentity ? '1px solid #C6E7D5' : '1px dashed var(--dashed-border)',
+            backgroundColor: memoryIdentity ? 'var(--warn-pill-bg)' : 'var(--surface-2)',
+            border: memoryIdentity
+              ? '1px solid var(--warn-pill-border)'
+              : '1px dashed var(--line-strong)',
             borderRadius: 'var(--radius-lg)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '1rem',
+              flexWrap: 'wrap',
+              gap: '0.5rem',
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {memoryIdentity ? (
-                <Unlock size={20} color="var(--risk-low-text)" />
+                <Unlock size={20} color="var(--warn-pill)" />
               ) : (
-                <Lock size={20} color="var(--accent)" />
+                <Lock size={20} color="var(--muted)" />
               )}
               <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--ink)' }}>
-                Protected Customer Identity Vault
+                {memoryIdentity
+                  ? COPY.caseDetail.identityBox.unlockedTitle
+                  : COPY.caseDetail.identityBox.lockedTitle}
               </h2>
             </div>
 
-            {/* Reveal Status Chip */}
             {latestReveal && (
               <Chip
-                label={`Reveal: ${latestReveal.status}`}
+                label={COPY.statusLabels[latestReveal.status] || latestReveal.status}
                 variant={
                   latestReveal.status === 'APPROVED'
                     ? 'low'
@@ -483,24 +670,17 @@ export const CaseDetailPage: React.FC = () => {
             )}
           </div>
 
-          {/* Condition 1: Already revealed in this active session memory */}
           {memoryIdentity ? (
+            /* Unmasked in memory */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div
                 style={{
-                  padding: '0.75rem 1rem',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: 'var(--risk-low-bg)',
-                  border: '1px solid #C6E7D5',
-                  color: 'var(--risk-low-text)',
                   fontSize: '0.8125rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
+                  color: 'var(--warn-pill)',
+                  lineHeight: 1.5,
                 }}
               >
-                <CheckCircle2 size={16} />
-                <span>Identity unmasked for this active browser session under dual-control approval.</span>
+                {COPY.caseDetail.identityBox.unlockedHelp}
               </div>
 
               <div
@@ -508,127 +688,161 @@ export const CaseDetailPage: React.FC = () => {
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
                   gap: '1rem',
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: 'var(--surface)',
                   padding: '1.25rem',
                   borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--line)',
+                  border: '1px solid var(--warn-pill-border)',
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>
-                    Real Sender Identity
+                  <div
+                    style={{
+                      fontSize: '0.75rem',
+                      color: 'var(--muted)',
+                      textTransform: 'uppercase',
+                      marginBottom: '0.2rem',
+                    }}
+                  >
+                    {COPY.caseDetail.identityBox.realName}
                   </div>
-                  <div style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--ink)' }}>
+                  <div
+                    style={{
+                      fontSize: '1.125rem',
+                      fontWeight: 600,
+                      color: 'var(--ink)',
+                    }}
+                  >
                     {memoryIdentity.senderRealValue}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.2rem' }}>
-                    Masked: <span className="mono">{caseData.transaction?.sender_token_id}</span>
+                    Anonymous ID: <span className="mono">{caseData.transaction?.sender_token_id}</span>
                   </div>
                 </div>
 
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>
-                    Real Beneficiary Account
+                  <div
+                    style={{
+                      fontSize: '0.75rem',
+                      color: 'var(--muted)',
+                      textTransform: 'uppercase',
+                      marginBottom: '0.2rem',
+                    }}
+                  >
+                    {COPY.caseDetail.identityBox.accountNumber}
                   </div>
-                  <div className="mono" style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--ink)' }}>
+                  <div
+                    className="mono"
+                    style={{
+                      fontSize: '1.125rem',
+                      fontWeight: 600,
+                      color: 'var(--ink)',
+                    }}
+                  >
                     {memoryIdentity.receiverRealValue}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.2rem' }}>
-                    Masked: <span className="mono">{caseData.transaction?.receiver_token_id}</span>
+                    Anonymous ID: <span className="mono">{caseData.transaction?.receiver_token_id}</span>
                   </div>
                 </div>
               </div>
 
-              <div style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-                <span>Approved by: <strong>{memoryIdentity.approvedBy}</strong></span>
-                <span className="mono">Audit Log: {memoryIdentity.auditLogId}</span>
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--muted)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem',
+                }}
+              >
+                <span>
+                  {COPY.caseDetail.identityBox.releasedBy}:{' '}
+                  <strong>{memoryIdentity.approvedBy}</strong>
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span className="mono">
+                    {COPY.nameRequests.successModal.fingerprint}: {memoryIdentity.hash.slice(0, 10)}...
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyFingerprint(memoryIdentity.hash)}
+                    title={copiedFingerprint ? COPY.common.copied : COPY.common.copy}
+                    style={{
+                      color: 'var(--muted)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '2px',
+                    }}
+                  >
+                    {copiedFingerprint ? <Check size={13} color="var(--primary)" /> : <Copy size={13} />}
+                  </button>
+                </div>
               </div>
             </div>
           ) : latestReveal?.status === 'PENDING' ? (
-            /* Condition 2: Reveal request is currently PENDING */
+            /* Pending senior approval */
             <div
               style={{
                 padding: '1.25rem',
-                backgroundColor: 'var(--amber-bg)',
+                backgroundColor: 'var(--warn-pill-bg)',
                 borderRadius: 'var(--radius-md)',
-                border: '1px solid #F9DE96',
+                border: '1px solid var(--warn-pill-border)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '0.5rem',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '0.875rem', color: 'var(--amber-text)' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  color: 'var(--warn-pill)',
+                }}
+              >
                 <Clock size={16} />
-                <span>Awaiting Dual-Control Approval</span>
+                <span>{COPY.caseDetail.identityBox.requestPending}</span>
               </div>
               <div style={{ fontSize: '0.8125rem', color: 'var(--ink)', lineHeight: 1.5 }}>
-                A gated identity unmask request was submitted by <strong>{latestReveal.requested_by}</strong>.
+                A request was submitted by <strong>{latestReveal.requested_by}</strong>.
               </div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--muted)', backgroundColor: '#FFFFFF', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)' }}>
+              <div
+                style={{
+                  fontSize: '0.8125rem',
+                  color: 'var(--muted)',
+                  backgroundColor: 'var(--surface)',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--line)',
+                }}
+              >
                 <strong>Reason:</strong> {latestReveal.reason}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.25rem' }}>
-                To maintain regulatory compliance, a Senior Investigator must review and approve this request.
-              </div>
-            </div>
-          ) : latestReveal?.status === 'APPROVED' ? (
-            /* Condition 3: Approved in past, but not in current session memory */
-            <div
-              style={{
-                padding: '1.25rem',
-                backgroundColor: '#FAF9F5',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--line)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.5rem',
-              }}
-            >
-              <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--ink)' }}>
-                Identity Reveal Previously Approved
-              </div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.5 }}>
-                An unmask request for this case was approved by <strong>{latestReveal.approved_by || 'Senior Investigator'}</strong> on{' '}
-                {latestReveal.revealed_at ? new Date(latestReveal.revealed_at).toLocaleString() : 'record'}.
-                Under zero-exposure compliance rules, decrypted PII is held only in active memory and is cleared upon session end.
               </div>
             </div>
           ) : (
-            /* Condition 4: No reveal or DENIED -> User can request */
+            /* Ready to request */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {latestReveal?.status === 'DENIED' && (
-                <div
-                  style={{
-                    padding: '0.75rem 1rem',
-                    backgroundColor: 'var(--risk-high-bg)',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid #F7C8C4',
-                    color: 'var(--risk-high-text)',
-                    fontSize: '0.8125rem',
-                  }}
-                >
-                  Previous reveal request was denied by {latestReveal.approved_by || 'Senior Investigator'}. You may submit a new justification if formal escalation is required.
-                </div>
-              )}
-
               <p style={{ fontSize: '0.875rem', color: 'var(--muted)', lineHeight: 1.55 }}>
-                Real customer identities and bank account numbers are protected by the Tessera Tokenization Vault. Downstream models and analysts view synthetic identifiers (
-                <span className="mono">{tokenLabels(caseData).slice(0, 2).join(', ')}</span>). Real identities require a formal dual-control request.
+                {COPY.caseDetail.identityBox.lockedHelp}
               </p>
 
               <div>
                 {hasPermission('reveal:request') ? (
                   <Button
-                    variant="accent"
+                    variant="dark"
                     size="md"
                     onClick={() => setIsRevealModalOpen(true)}
                     icon={<KeyRound size={16} />}
                   >
-                    Request identity reveal
+                    {COPY.caseDetail.identityBox.requestButton}
                   </Button>
                 ) : (
                   <div style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
-                    Your role cannot submit identity reveal requests.
+                    Your role cannot request customer names.
                   </div>
                 )}
               </div>
@@ -637,30 +851,43 @@ export const CaseDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Reveal Request Modal */}
+      {/* Request Customer Name Modal */}
       <Modal
         isOpen={isRevealModalOpen}
         onClose={() => setIsRevealModalOpen(false)}
-        title="Request Customer Identity Reveal"
+        title={COPY.caseDetail.requestModal.title}
         maxWidth="540px"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsRevealModalOpen(false)} disabled={revealSubmitting}>
-              Cancel
+            <Button
+              variant="outline"
+              onClick={() => setIsRevealModalOpen(false)}
+              disabled={revealSubmitting}
+            >
+              {COPY.caseDetail.requestModal.cancel}
             </Button>
-            <Button variant="accent" onClick={handleRevealSubmit} loading={revealSubmitting}>
-              Submit for dual-control approval
+            <Button
+              variant="primary"
+              onClick={handleRevealSubmit}
+              loading={revealSubmitting}
+            >
+              {revealSubmitting
+                ? COPY.caseDetail.requestModal.submitting
+                : COPY.caseDetail.requestModal.submit}
             </Button>
           </>
         }
       >
-        <form onSubmit={handleRevealSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form
+          onSubmit={handleRevealSubmit}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+        >
           {revealError && <ErrorBanner message={revealError} />}
 
           <div
             style={{
               padding: '0.75rem 1rem',
-              backgroundColor: '#FAF9F5',
+              backgroundColor: 'var(--surface-2)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--line)',
               fontSize: '0.8125rem',
@@ -668,15 +895,21 @@ export const CaseDetailPage: React.FC = () => {
               lineHeight: 1.5,
             }}
           >
-            <strong>Regulatory Dual-Control Notice:</strong> Every reveal request is recorded into the SHA-256 cryptographic audit trail. Real identities are released only after an independent Senior Investigator approves.
+            {COPY.caseDetail.requestModal.help}
           </div>
 
           <div>
             <label
               htmlFor="reveal-category"
-              style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: 'var(--ink)', marginBottom: '0.375rem' }}
+              style={{
+                display: 'block',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                color: 'var(--ink)',
+                marginBottom: '0.375rem',
+              }}
             >
-              Justification category
+              {COPY.caseDetail.requestModal.categoryLabel}
             </label>
             <select
               id="reveal-category"
@@ -688,28 +921,36 @@ export const CaseDetailPage: React.FC = () => {
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--line)',
                 backgroundColor: 'var(--surface)',
+                color: 'var(--ink)',
                 minHeight: '44px',
               }}
             >
-              <option value="Customer contacted us">Customer contacted us regarding block</option>
-              <option value="Regulatory or FIU escalation">Regulatory or FIU escalation</option>
-              <option value="Internal investigation">Internal senior investigation</option>
-              <option value="Other">Other formal compliance requirement</option>
+              {COPY.caseDetail.requestModal.categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
             </select>
           </div>
 
           <div>
             <label
               htmlFor="reveal-detail"
-              style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: 'var(--ink)', marginBottom: '0.375rem' }}
+              style={{
+                display: 'block',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                color: 'var(--ink)',
+                marginBottom: '0.375rem',
+              }}
             >
-              Detailed justification rationale
+              {COPY.caseDetail.requestModal.detailLabel}
             </label>
             <textarea
               id="reveal-detail"
               value={revealDetail}
               onChange={(e) => setRevealDetail(e.target.value)}
-              placeholder="State the regulatory ticket or specific reason for unmasking real customer identity..."
+              placeholder={COPY.caseDetail.requestModal.detailPlaceholder}
               rows={4}
               required
               style={{
@@ -718,6 +959,7 @@ export const CaseDetailPage: React.FC = () => {
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--line)',
                 backgroundColor: 'var(--surface)',
+                color: 'var(--ink)',
                 resize: 'vertical',
               }}
             />
@@ -725,39 +967,58 @@ export const CaseDetailPage: React.FC = () => {
         </form>
       </Modal>
 
-      {/* Disagree with AI / Override Modal */}
+      {/* Change Risk Rating Modal */}
       <Modal
         isOpen={isOverrideModalOpen}
         onClose={() => setIsOverrideModalOpen(false)}
-        title="Override AI Fraud Assessment"
+        title={COPY.caseDetail.overrideModal.title}
         maxWidth="520px"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsOverrideModalOpen(false)} disabled={overrideSubmitting}>
-              Cancel
+            <Button
+              variant="outline"
+              onClick={() => setIsOverrideModalOpen(false)}
+              disabled={overrideSubmitting}
+            >
+              {COPY.caseDetail.overrideModal.cancel}
             </Button>
-            <Button variant="dark" onClick={handleOverrideSubmit} loading={overrideSubmitting}>
-              Submit override verdict
+            <Button
+              variant="primary"
+              onClick={handleOverrideSubmit}
+              loading={overrideSubmitting}
+            >
+              {overrideSubmitting
+                ? COPY.caseDetail.overrideModal.submitting
+                : COPY.caseDetail.overrideModal.submit}
             </Button>
           </>
         }
       >
-        <form onSubmit={handleOverrideSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form
+          onSubmit={handleOverrideSubmit}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+        >
           {overrideError && <ErrorBanner message={overrideError} />}
 
           <div style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.5 }}>
-            You are overriding the composite decision generated by the Multi-Agent engine for <strong>{caseData.id}</strong>. This override is logged to the immutable compliance ledger.
+            {COPY.caseDetail.overrideModal.help}
           </div>
 
           <div>
             <label
-              htmlFor="override-risk-level"
-              style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: 'var(--ink)', marginBottom: '0.375rem' }}
+              htmlFor="override-level"
+              style={{
+                display: 'block',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                color: 'var(--ink)',
+                marginBottom: '0.375rem',
+              }}
             >
-              New assigned risk level
+              {COPY.caseDetail.overrideModal.newRiskLabel}
             </label>
             <select
-              id="override-risk-level"
+              id="override-level"
               value={overrideLevel}
               onChange={(e) => setOverrideLevel(e.target.value)}
               style={{
@@ -766,28 +1027,35 @@ export const CaseDetailPage: React.FC = () => {
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--line)',
                 backgroundColor: 'var(--surface)',
+                color: 'var(--ink)',
                 minHeight: '44px',
               }}
             >
-              <option value="LOW">LOW (Dismiss false positive)</option>
-              <option value="MEDIUM">MEDIUM (Requires monitoring)</option>
-              <option value="HIGH">HIGH (Confirmed fraud indicator)</option>
-              <option value="CRITICAL">CRITICAL (Immediate freeze)</option>
+              <option value="LOW">{COPY.riskLabels.LOW}</option>
+              <option value="MEDIUM">{COPY.riskLabels.MEDIUM}</option>
+              <option value="HIGH">{COPY.riskLabels.HIGH}</option>
+              <option value="CRITICAL">{COPY.riskLabels.CRITICAL}</option>
             </select>
           </div>
 
           <div>
             <label
               htmlFor="override-reason"
-              style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: 'var(--ink)', marginBottom: '0.375rem' }}
+              style={{
+                display: 'block',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                color: 'var(--ink)',
+                marginBottom: '0.375rem',
+              }}
             >
-              Investigator override justification
+              {COPY.caseDetail.overrideModal.reasonLabel}
             </label>
             <textarea
               id="override-reason"
               value={overrideReason}
               onChange={(e) => setOverrideReason(e.target.value)}
-              placeholder="e.g. Customer confirmed travel plan; false positive device jump verified via out-of-band call."
+              placeholder={COPY.caseDetail.overrideModal.reasonPlaceholder}
               rows={4}
               required
               style={{
@@ -796,6 +1064,7 @@ export const CaseDetailPage: React.FC = () => {
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--line)',
                 backgroundColor: 'var(--surface)',
+                color: 'var(--ink)',
                 resize: 'vertical',
               }}
             />

@@ -9,7 +9,6 @@ import {
   ChevronRight,
   Filter,
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import type { FraudCaseDTO, RevealRequestDTO } from '../api/types';
 import { parseScore, tokenLabels, contributions } from '../api/derive';
@@ -21,9 +20,9 @@ import { DataTable } from '../components/common/DataTable';
 import type { Column } from '../components/common/DataTable';
 import { ErrorBanner } from '../components/common/ErrorBanner';
 import { Button } from '../components/common/Button';
+import { COPY } from '../copy';
 
 export const CaseQueuePage: React.FC = () => {
-  const { revealedCount } = useAuth();
   const navigate = useNavigate();
 
   const [cases, setCases] = useState<FraudCaseDTO[]>([]);
@@ -53,14 +52,15 @@ export const CaseQueuePage: React.FC = () => {
         setSelectedCaseId(casesData[0].id);
       }
     } catch (err: unknown) {
-      setError((err as Error).message || 'Failed to load case queue');
+      const errorMsg = (err as Error).message || COPY.auth.networkError;
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
   }, [selectedCaseId]);
 
   useEffect(() => {
-    document.title = 'Tessera — Case Queue';
+    document.title = `${COPY.brand.name} — ${COPY.caseQueue.title}`;
   }, []);
 
   useEffect(() => {
@@ -97,7 +97,9 @@ export const CaseQueuePage: React.FC = () => {
   }, [cases]);
 
   const highRiskCount = useMemo(() => {
-    return cases.filter((c) => c.verdict?.risk_level === 'HIGH' || c.verdict?.risk_level === 'CRITICAL').length;
+    return cases.filter(
+      (c) => c.verdict?.risk_level === 'HIGH' || c.verdict?.risk_level === 'CRITICAL'
+    ).length;
   }, [cases]);
 
   const pendingRevealsCount = useMemo(() => {
@@ -127,7 +129,10 @@ export const CaseQueuePage: React.FC = () => {
           return false;
         }
         // Risk filter
-        if (riskFilter !== 'ALL' && c.verdict?.risk_level.toUpperCase() !== riskFilter.toUpperCase()) {
+        if (
+          riskFilter !== 'ALL' &&
+          c.verdict?.risk_level.toUpperCase() !== riskFilter.toUpperCase()
+        ) {
           return false;
         }
         // Search query
@@ -169,7 +174,7 @@ export const CaseQueuePage: React.FC = () => {
   const columns: Column<FraudCaseDTO>[] = [
     {
       key: 'id',
-      header: 'Case',
+      header: COPY.caseQueue.table.caseId,
       width: '100px',
       render: (c) => (
         <span className="mono" style={{ fontWeight: 600, color: 'var(--ink)' }}>
@@ -179,19 +184,25 @@ export const CaseQueuePage: React.FC = () => {
     },
     {
       key: 'subject',
-      header: 'Subject Token',
+      header: COPY.caseQueue.table.customer,
       width: '150px',
       render: (c) => {
         const tokens = tokenLabels(c);
         const displayToken = tokens[0] || c.transaction?.sender_token_id || 'UNKNOWN';
-        return <TokenChip token={displayToken} />;
+        return (
+          <TokenChip
+            token={displayToken}
+            tooltip={COPY.caseQueue.table.anonymousIdTooltip}
+          />
+        );
       },
     },
     {
       key: 'findings',
-      header: 'What we found',
+      header: COPY.caseDetail.whatWeFound,
       render: (c) => {
-        const text = c.findings[0]?.summary || c.verdict?.summary || 'No risk signals recorded';
+        const text =
+          c.findings[0]?.summary || c.verdict?.summary || 'No risk signals recorded';
         return (
           <div
             style={{
@@ -211,7 +222,7 @@ export const CaseQueuePage: React.FC = () => {
     },
     {
       key: 'amount',
-      header: 'Amount',
+      header: COPY.caseQueue.table.amount,
       width: '120px',
       align: 'right',
       render: (c) => (
@@ -222,17 +233,23 @@ export const CaseQueuePage: React.FC = () => {
     },
     {
       key: 'risk',
-      header: 'Risk',
+      header: COPY.caseQueue.table.risk,
       width: '130px',
       render: (c) => {
         const level = c.verdict?.risk_level || 'LOW';
         const score = parseScore(c.verdict?.summary);
-        return <Chip label={level} variant={level.toLowerCase() as any} score={score} />;
+        const variant =
+          level === 'HIGH' || level === 'CRITICAL'
+            ? 'high'
+            : level === 'MEDIUM'
+            ? 'med'
+            : 'low';
+        return <Chip label={level} variant={variant} score={score} />;
       },
     },
     {
       key: 'signals',
-      header: 'Signals',
+      header: COPY.caseQueue.table.checks,
       width: '110px',
       render: (c) => {
         const sigs = contributions(c);
@@ -241,13 +258,13 @@ export const CaseQueuePage: React.FC = () => {
             {sigs.map((s) => (
               <span
                 key={s.agent}
-                title={`${s.label}: ${s.detected ? 'Active finding' : 'Not detected'}`}
+                title={`${s.label}: ${s.detected ? 'Active check' : 'Not triggered'}`}
                 style={{
-                  width: '9px',
-                  height: '9px',
+                  width: '10px',
+                  height: '10px',
                   borderRadius: '2px',
-                  backgroundColor: s.detected ? 'var(--accent)' : '#E0DDD5',
-                  border: s.detected ? '1px solid var(--accent-hover)' : '1px solid #D1CDC4',
+                  backgroundColor: s.detected ? s.colorVar : 'var(--neutral-bg)',
+                  border: s.detected ? `1px solid ${s.colorVar}` : '1px solid var(--line)',
                 }}
               />
             ))}
@@ -256,8 +273,30 @@ export const CaseQueuePage: React.FC = () => {
       },
     },
     {
+      key: 'status',
+      header: COPY.caseQueue.table.status,
+      width: '110px',
+      render: (c) => {
+        const status = c.status.toUpperCase();
+        const variant =
+          status === 'OPEN' || status === 'UNDER_REVIEW'
+            ? 'info'
+            : status === 'RESOLVED' || status === 'APPROVED'
+            ? 'low'
+            : status === 'PENDING'
+            ? 'amber'
+            : 'neutral';
+        return (
+          <Chip
+            label={COPY.statusLabels[status] || status}
+            variant={variant}
+          />
+        );
+      },
+    },
+    {
       key: 'opened',
-      header: 'Opened',
+      header: COPY.caseQueue.table.raised,
       width: '100px',
       render: (c) => (
         <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
@@ -265,19 +304,53 @@ export const CaseQueuePage: React.FC = () => {
         </span>
       ),
     },
+    {
+      key: 'actions',
+      header: COPY.caseQueue.table.actions,
+      width: '90px',
+      align: 'right',
+      render: (c) => (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/cases/${c.id}`);
+          }}
+          icon={<ChevronRight size={14} />}
+        >
+          {COPY.caseQueue.table.review}
+        </Button>
+      ),
+    },
   ];
 
   return (
-    <AppShell onSearch={setSearchQuery} searchPlaceholder="Search case ID, token, narrative...">
+    <AppShell onSearch={setSearchQuery} searchPlaceholder={COPY.caseQueue.searchPlaceholder}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {/* Page Title & Context */}
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'baseline',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+          }}
+        >
           <div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
-              Case queue
+            <h1
+              style={{
+                fontSize: '1.5rem',
+                fontWeight: 600,
+                color: 'var(--ink)',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {COPY.caseQueue.title}
             </h1>
             <p style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>
-              {filteredAndSortedCases.length} {filteredAndSortedCases.length === 1 ? 'case needs' : 'cases need'} review, highest risk first
+              {COPY.caseQueue.subLine(filteredAndSortedCases.length)}
             </p>
           </div>
         </div>
@@ -294,27 +367,30 @@ export const CaseQueuePage: React.FC = () => {
           }}
         >
           <KpiCard
-            label="Awaiting review"
+            label={COPY.caseQueue.kpis.waiting}
             value={awaitingReviewCount}
             subtext="Status OPEN or UNDER_REVIEW"
+            tone="info"
             icon={<Clock size={18} />}
           />
           <KpiCard
-            label="High risk"
+            label={COPY.caseQueue.kpis.highRisk}
             value={highRiskCount}
             subtext="Score ≥ 60 or Watchlist match"
+            tone="high"
             icon={<ShieldAlert size={18} />}
           />
           <KpiCard
-            label="Pending reveal requests"
+            label={COPY.caseQueue.kpis.pendingReveals}
             value={pendingRevealsCount}
-            subtext="Awaiting dual-control approval"
+            subtext="Awaiting senior approval"
+            tone="med"
             icon={<KeyRound size={18} />}
           />
           <KpiCard
-            label="Real names on this page"
-            value={revealedCount}
-            subtext={revealedCount === 0 ? 'Strict privacy mode (Zero PII)' : 'Decrypted in current session'}
+            label={COPY.caseQueue.kpis.aiNamesSeen}
+            value={0}
+            subtext={COPY.caseQueue.kpis.aiNamesSub}
             isHero={true}
             icon={<Eye size={18} />}
           />
@@ -333,7 +409,15 @@ export const CaseQueuePage: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--muted)', fontSize: '0.8125rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                color: 'var(--muted)',
+                fontSize: '0.8125rem',
+              }}
+            >
               <Filter size={15} />
               <span>Filters:</span>
             </div>
@@ -348,61 +432,59 @@ export const CaseQueuePage: React.FC = () => {
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 style={{
-                  padding: '0.35rem 0.6rem',
+                  padding: '0.35rem 0.65rem',
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--line)',
                   backgroundColor: 'var(--surface)',
+                  color: 'var(--ink)',
+                  fontSize: '0.8125rem',
                 }}
               >
-                <option value="ALL">All statuses</option>
-                <option value="OPEN">Open</option>
-                <option value="UNDER_REVIEW">Under Review</option>
-                <option value="RESOLVED">Resolved</option>
-                <option value="OVERRIDDEN">Overridden</option>
+                <option value="ALL">{COPY.caseQueue.filters.allStatuses}</option>
+                <option value="OPEN">{COPY.caseQueue.filters.open}</option>
+                <option value="UNDER_REVIEW">{COPY.caseQueue.filters.underReview}</option>
+                <option value="RESOLVED">{COPY.caseQueue.filters.resolved}</option>
+                <option value="OVERRIDDEN">{COPY.caseQueue.filters.overridden}</option>
               </select>
             </div>
 
             {/* Risk Select */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <label htmlFor="risk-select" style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
-                Risk level
+                Risk
               </label>
               <select
                 id="risk-select"
                 value={riskFilter}
                 onChange={(e) => setRiskFilter(e.target.value)}
                 style={{
-                  padding: '0.35rem 0.6rem',
+                  padding: '0.35rem 0.65rem',
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--line)',
                   backgroundColor: 'var(--surface)',
+                  color: 'var(--ink)',
+                  fontSize: '0.8125rem',
                 }}
               >
-                <option value="ALL">All risks</option>
-                <option value="HIGH">High risk</option>
-                <option value="MEDIUM">Medium risk</option>
-                <option value="LOW">Low risk</option>
+                <option value="ALL">{COPY.caseQueue.filters.allRisks}</option>
+                <option value="CRITICAL">{COPY.caseQueue.filters.critical}</option>
+                <option value="HIGH">{COPY.caseQueue.filters.high}</option>
+                <option value="MEDIUM">{COPY.caseQueue.filters.medium}</option>
+                <option value="LOW">{COPY.caseQueue.filters.low}</option>
               </select>
             </div>
           </div>
 
           <div style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
-            Showing <strong>{filteredAndSortedCases.length}</strong> of {cases.length} cases
+            Showing <strong>{filteredAndSortedCases.length}</strong> of{' '}
+            <strong>{cases.length}</strong> cases
           </div>
         </div>
 
-        {/* Main Content Area: Table + Side Panel */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: selectedCase ? '1fr 320px' : '1fr',
-            gap: '1.25rem',
-            alignItems: 'start',
-          }}
-          className="queue-split-container"
-        >
-          {/* Table Container */}
-          <div style={{ minWidth: 0 }}>
+        {/* Main Content: Split Table and Detail Side Panel */}
+        <div className="case-queue-layout">
+          {/* Main Table */}
+          <div style={{ flex: 1, minWidth: 0 }}>
             <DataTable
               columns={columns}
               data={filteredAndSortedCases}
@@ -410,91 +492,158 @@ export const CaseQueuePage: React.FC = () => {
               selectedKey={selectedCaseId}
               onRowClick={(c) => setSelectedCaseId(c.id)}
               loading={loading}
-              emptyTitle="No fraud cases match criteria"
-              emptyDescription="Try clearing filters or search query to see other assigned cases."
+              emptyTitle={COPY.caseQueue.emptyState}
             />
           </div>
 
-          {/* Compact Right Detail Panel */}
+          {/* Responsive Side Detail Panel */}
           {selectedCase && (
             <div
-              className="tessera-card"
+              className="tessera-card case-side-panel"
               style={{
+                width: '320px',
                 padding: '1.25rem',
-                backgroundColor: 'var(--surface)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '1rem',
+                alignSelf: 'flex-start',
+                backgroundColor: 'var(--surface)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span className="mono" style={{ fontWeight: 600, fontSize: '1rem' }}>
-                  {selectedCase.id}
-                </span>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderBottom: '1px solid var(--line)',
+                  paddingBottom: '0.75rem',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'uppercase' }}>
+                    {COPY.caseQueue.previewTitle}
+                  </div>
+                  <div
+                    className="mono"
+                    style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--ink)' }}
+                  >
+                    {selectedCase.id}
+                  </div>
+                </div>
                 <Chip
                   label={selectedCase.verdict?.risk_level || 'LOW'}
-                  variant={selectedCase.verdict?.risk_level.toLowerCase() as any}
+                  variant={
+                    selectedCase.verdict?.risk_level === 'HIGH' ||
+                    selectedCase.verdict?.risk_level === 'CRITICAL'
+                      ? 'high'
+                      : selectedCase.verdict?.risk_level === 'MEDIUM'
+                      ? 'med'
+                      : 'low'
+                  }
                   score={parseScore(selectedCase.verdict?.summary)}
                 />
               </div>
 
-              {/* Transaction Summary */}
-              <div
-                style={{
-                  padding: '0.75rem',
-                  backgroundColor: '#FAF9F5',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--line)',
-                }}
-              >
-                <div style={{ fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>
-                  Transaction Amount
+              {/* Amount and Customer */}
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                  {COPY.caseDetail.amount}
                 </div>
                 <div className="mono" style={{ fontSize: '1.25rem', fontWeight: 600 }}>
                   {formatINR(selectedCase.transaction?.amount)}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.4rem' }}>
-                  ID: <span className="mono">{selectedCase.transaction_id}</span>
-                </div>
               </div>
 
-              {/* Tokens Involved */}
               <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-                  Protected Entities
+                <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginBottom: '0.25rem' }}>
+                  {COPY.caseQueue.table.customer}
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                  {tokenLabels(selectedCase).map((t) => (
-                    <TokenChip key={t} token={t} />
+                <TokenChip
+                  token={
+                    tokenLabels(selectedCase)[0] ||
+                    selectedCase.transaction?.sender_token_id ||
+                    'UNKNOWN'
+                  }
+                  tooltip={COPY.caseQueue.table.anonymousIdTooltip}
+                />
+              </div>
+
+              {/* Checks */}
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginBottom: '0.5rem' }}>
+                  {COPY.caseQueue.table.checks}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  {contributions(selectedCase).map((s) => (
+                    <div
+                      key={s.agent}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.75rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '2px',
+                            backgroundColor: s.detected ? s.colorVar : 'var(--neutral-bg)',
+                            border: s.detected
+                              ? `1px solid ${s.colorVar}`
+                              : '1px solid var(--line)',
+                          }}
+                        />
+                        <span style={{ color: s.detected ? 'var(--ink)' : 'var(--muted)' }}>
+                          {s.label}
+                        </span>
+                      </div>
+                      <span
+                        className="mono"
+                        style={{
+                          fontWeight: s.detected ? 600 : 400,
+                          color: s.detected ? 'var(--ink)' : 'var(--muted)',
+                        }}
+                      >
+                        {s.detected ? `${s.percent}%` : '—'}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </div>
 
-              {/* Rationale */}
+              {/* What We Found summary */}
               <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                  Assessment Rationale
+                <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginBottom: '0.25rem' }}>
+                  {COPY.caseDetail.whatWeFound}
                 </div>
-                <div style={{ fontSize: '0.8125rem', color: 'var(--ink)', lineHeight: 1.45 }}>
-                  {selectedCase.verdict?.summary || 'Standard transaction pattern without anomalous deviation.'}
+                <div
+                  style={{
+                    fontSize: '0.8125rem',
+                    color: 'var(--ink)',
+                    lineHeight: 1.4,
+                    backgroundColor: 'var(--surface-2)',
+                    padding: '0.625rem',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--line)',
+                  }}
+                >
+                  {selectedCase.verdict?.summary ||
+                    selectedCase.findings[0]?.summary ||
+                    'No summary available'}
                 </div>
-              </div>
-
-              {/* Findings count badge */}
-              <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
-                Signals detected: <strong>{selectedCase.findings.length} agents flagged</strong>
               </div>
 
               {/* Open full case button */}
               <Button
-                variant="dark"
-                size="md"
+                variant="primary"
                 onClick={() => navigate(`/cases/${selectedCase.id}`)}
-                icon={<ExternalLink size={16} />}
+                icon={<ExternalLink size={15} />}
                 style={{ width: '100%', marginTop: '0.5rem' }}
               >
-                Open full case
-                <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
+                {COPY.caseQueue.viewFullCase}
               </Button>
             </div>
           )}
@@ -502,9 +651,17 @@ export const CaseQueuePage: React.FC = () => {
       </div>
 
       <style>{`
+        .case-queue-layout {
+          display: flex;
+          gap: 1.5rem;
+          align-items: flex-start;
+        }
         @media (max-width: 1100px) {
-          .queue-split-container {
-            grid-template-columns: 1fr !important;
+          .case-queue-layout {
+            flex-direction: column;
+          }
+          .case-side-panel {
+            width: 100% !important;
           }
         }
       `}</style>

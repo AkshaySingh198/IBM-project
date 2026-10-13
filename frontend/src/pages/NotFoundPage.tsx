@@ -2,10 +2,11 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FileQuestion, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/common/Button';
+import { COPY } from '../copy';
 
 export const NotFoundPage: React.FC = () => {
   useEffect(() => {
-    document.title = 'Tessera — Page Not Found';
+    document.title = `${COPY.brand.name} — ${COPY.common.notFoundTitle}`;
   }, []);
 
   return (
@@ -33,7 +34,7 @@ export const NotFoundPage: React.FC = () => {
             width: '48px',
             height: '48px',
             borderRadius: '50%',
-            backgroundColor: '#FAF9F5',
+            backgroundColor: 'var(--surface-2)',
             color: 'var(--muted)',
             display: 'flex',
             alignItems: 'center',
@@ -44,15 +45,29 @@ export const NotFoundPage: React.FC = () => {
         >
           <FileQuestion size={24} />
         </div>
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--ink)', marginBottom: '0.5rem' }}>
-          Page not found
+        <h1
+          style={{
+            fontSize: '1.25rem',
+            fontWeight: 600,
+            color: 'var(--ink)',
+            marginBottom: '0.5rem',
+          }}
+        >
+          {COPY.common.notFoundTitle}
         </h1>
-        <p style={{ fontSize: '0.875rem', color: 'var(--muted)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-          The requested page or resource could not be found. Please check the URL or return to the workspace.
+        <p
+          style={{
+            fontSize: '0.875rem',
+            color: 'var(--muted)',
+            marginBottom: '1.5rem',
+            lineHeight: 1.5,
+          }}
+        >
+          {COPY.common.notFoundText}
         </p>
         <Link to="/">
-          <Button variant="dark" icon={<ArrowLeft size={16} />}>
-            Return to Case Queue
+          <Button variant="primary" icon={<ArrowLeft size={16} />}>
+            {COPY.common.backToCases}
           </Button>
         </Link>
       </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from './Button';
+import { COPY } from '../../copy';
 
 interface ErrorBannerProps {
   message: string;
@@ -12,7 +13,7 @@ interface ErrorBannerProps {
 export const ErrorBanner: React.FC<ErrorBannerProps> = ({
   message,
   onRetry,
-  title = 'An error occurred',
+  title = COPY.auth.networkError,
   style,
 }) => {
   return (
@@ -23,10 +24,10 @@ export const ErrorBanner: React.FC<ErrorBannerProps> = ({
         alignItems: 'flex-start',
         justifyContent: 'space-between',
         padding: '1rem 1.25rem',
-        backgroundColor: 'var(--risk-high-bg)',
-        border: '1px solid #F7C8C4',
+        backgroundColor: 'var(--high-bg)',
+        border: '1px solid var(--high-border)',
         borderRadius: 'var(--radius-md)',
-        color: 'var(--risk-high-text)',
+        color: 'var(--high)',
         gap: '1rem',
         ...style,
       }}
@@ -45,13 +46,13 @@ export const ErrorBanner: React.FC<ErrorBannerProps> = ({
           onClick={onRetry}
           icon={<RefreshCw size={14} />}
           style={{
-            borderColor: '#F7C8C4',
-            color: 'var(--risk-high-text)',
-            backgroundColor: '#FFFFFF',
+            borderColor: 'var(--high-border)',
+            color: 'var(--high)',
+            backgroundColor: 'var(--white)',
             flexShrink: 0,
           }}
         >
-          Retry
+          {COPY.common.tryAgain}
         </Button>
       )}
     </div>

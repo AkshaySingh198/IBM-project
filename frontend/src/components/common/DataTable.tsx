@@ -51,7 +51,7 @@ export function DataTable<T>({
           <tr
             style={{
               borderBottom: '1px solid var(--line)',
-              backgroundColor: '#FAF9F5',
+              backgroundColor: 'var(--surface-2)',
             }}
           >
             {columns.map((col) => (
@@ -101,12 +101,12 @@ export function DataTable<T>({
                   style={{
                     borderBottom: '1px solid var(--line)',
                     cursor: onRowClick ? 'pointer' : 'default',
-                    backgroundColor: isSelected ? 'var(--accent-soft)' : 'transparent',
+                    backgroundColor: isSelected ? 'var(--primary-soft)' : 'transparent',
                     transition: 'background-color 0.1s ease',
                   }}
                   onMouseEnter={(e) => {
                     if (onRowClick && !isSelected) {
-                      e.currentTarget.style.backgroundColor = '#FAF9F5';
+                      e.currentTarget.style.backgroundColor = 'var(--row-hover)';
                     }
                   }}
                   onMouseLeave={(e) => {

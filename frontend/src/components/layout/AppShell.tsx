@@ -1,7 +1,18 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { ShieldAlert, FileText, History, Lock, Unlock, LogOut, Menu, X, Search, Shield } from 'lucide-react';
+import {
+  ShieldAlert,
+  FileText,
+  History,
+  Lock,
+  Unlock,
+  LogOut,
+  Menu,
+  X,
+  Search,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { COPY } from '../../copy';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -12,7 +23,7 @@ interface AppShellProps {
 export const AppShell: React.FC<AppShellProps> = ({
   children,
   onSearch,
-  searchPlaceholder = 'Search case ID, token, narrative...',
+  searchPlaceholder = COPY.caseQueue.searchPlaceholder,
 }) => {
   const { user, logout, hasPermission, revealedCount } = useAuth();
   const navigate = useNavigate();
@@ -32,19 +43,19 @@ export const AppShell: React.FC<AppShellProps> = ({
   const navItems = [
     {
       to: '/',
-      label: 'Case queue',
+      label: COPY.nav.cases,
       icon: <ShieldAlert size={18} />,
       permission: 'cases:read',
     },
     {
       to: '/reveal-requests',
-      label: 'Reveal requests',
+      label: COPY.nav.nameRequests,
       icon: <FileText size={18} />,
       permission: 'cases:read',
     },
     {
       to: '/audit',
-      label: 'Audit log',
+      label: COPY.nav.activityLog,
       icon: <History size={18} />,
       permission: 'audit:read',
     },
@@ -56,8 +67,8 @@ export const AppShell: React.FC<AppShellProps> = ({
       <aside
         style={{
           width: 'var(--sidebar-width)',
-          backgroundColor: 'var(--surface)',
-          borderRight: '1px solid var(--line)',
+          backgroundColor: 'var(--side-bg)',
+          borderRight: '1px solid var(--side-active)',
           display: 'flex',
           flexDirection: 'column',
           position: 'fixed',
@@ -69,14 +80,14 @@ export const AppShell: React.FC<AppShellProps> = ({
         }}
         className="tessera-sidebar"
       >
-        {/* Logo and Brand */}
+        {/* Logo and Brand: white with one teal tile */}
         <div
           style={{
             padding: '1.25rem 1.25rem 1rem',
-            borderBottom: '1px solid var(--line)',
+            borderBottom: '1px solid var(--side-active)',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.625rem',
+            gap: '0.75rem',
           }}
         >
           <div
@@ -84,27 +95,51 @@ export const AppShell: React.FC<AppShellProps> = ({
               width: '32px',
               height: '32px',
               borderRadius: 'var(--radius-sm)',
-              backgroundColor: 'var(--accent)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#FFFFFF',
             }}
           >
-            <Shield size={18} />
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <rect x="2" y="2" width="11" height="11" rx="2" fill="var(--white)" />
+              <rect x="15" y="2" width="11" height="11" rx="2" fill="var(--white)" />
+              <rect x="2" y="15" width="11" height="11" rx="2" fill="var(--primary)" />
+              <rect x="15" y="15" width="11" height="11" rx="2" fill="var(--white)" />
+            </svg>
           </div>
           <div>
-            <div style={{ fontSize: '1.0625rem', fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
-              Tessera
+            <div
+              style={{
+                fontSize: '1.0625rem',
+                fontWeight: 600,
+                color: 'var(--white)',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {COPY.brand.name}
             </div>
-            <div style={{ fontSize: '0.6875rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Privacy-first workspace
+            <div
+              style={{
+                fontSize: '0.6875rem',
+                color: 'var(--side-muted)',
+                letterSpacing: '0.02em',
+              }}
+            >
+              {COPY.brand.tagline}
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav style={{ padding: '1rem 0.75rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+        <nav
+          style={{
+            padding: '1rem 0.75rem',
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.35rem',
+          }}
+        >
           {navItems
             .filter((item) => hasPermission(item.permission))
             .map((item) => (
@@ -120,8 +155,8 @@ export const AppShell: React.FC<AppShellProps> = ({
                   borderRadius: 'var(--radius-md)',
                   fontSize: '0.875rem',
                   fontWeight: 500,
-                  color: isActive ? 'var(--accent)' : 'var(--ink)',
-                  backgroundColor: isActive ? 'var(--accent-soft)' : 'transparent',
+                  color: isActive ? 'var(--white)' : 'var(--side-text)',
+                  backgroundColor: isActive ? 'var(--side-active)' : 'transparent',
                   transition: 'background-color 0.15s ease',
                 })}
               >
@@ -136,8 +171,8 @@ export const AppShell: React.FC<AppShellProps> = ({
           <div
             style={{
               padding: '1rem',
-              borderTop: '1px solid var(--line)',
-              backgroundColor: '#FAF9F5',
+              borderTop: '1px solid var(--side-active)',
+              backgroundColor: 'var(--side-active)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -148,7 +183,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 style={{
                   fontSize: '0.8125rem',
                   fontWeight: 600,
-                  color: 'var(--ink)',
+                  color: 'var(--white)',
                   whiteSpace: 'nowrap',
                   textOverflow: 'ellipsis',
                   overflow: 'hidden',
@@ -159,7 +194,7 @@ export const AppShell: React.FC<AppShellProps> = ({
               <div
                 style={{
                   fontSize: '0.6875rem',
-                  color: 'var(--muted)',
+                  color: 'var(--side-muted)',
                   textTransform: 'uppercase',
                   fontWeight: 500,
                 }}
@@ -170,11 +205,11 @@ export const AppShell: React.FC<AppShellProps> = ({
             <button
               type="button"
               onClick={handleLogout}
-              aria-label="Sign out"
-              title="Sign out"
+              aria-label={COPY.nav.signOut}
+              title={COPY.nav.signOut}
               style={{
                 padding: '0.375rem',
-                color: 'var(--muted)',
+                color: 'var(--side-text)',
                 borderRadius: 'var(--radius-sm)',
                 display: 'flex',
                 alignItems: 'center',
@@ -269,17 +304,15 @@ export const AppShell: React.FC<AppShellProps> = ({
                   gap: '0.4rem',
                   padding: '0.3rem 0.75rem',
                   borderRadius: '100px',
-                  backgroundColor: 'var(--amber-bg)',
-                  border: '1px solid #F9DE96',
-                  color: 'var(--amber-text)',
+                  backgroundColor: 'var(--warn-pill-bg)',
+                  border: '1px solid var(--warn-pill-border)',
+                  color: 'var(--warn-pill)',
                   fontSize: '0.75rem',
                   fontWeight: 600,
                 }}
               >
                 <Unlock size={13} />
-                <span>
-                  {revealedCount} {revealedCount === 1 ? 'identity' : 'identities'} visible to you
-                </span>
+                <span>{COPY.brand.namesVisible(revealedCount)}</span>
               </div>
             ) : (
               <div
@@ -289,15 +322,15 @@ export const AppShell: React.FC<AppShellProps> = ({
                   gap: '0.4rem',
                   padding: '0.3rem 0.75rem',
                   borderRadius: '100px',
-                  backgroundColor: 'var(--accent-soft)',
-                  border: '1px solid rgba(11, 91, 80, 0.2)',
-                  color: 'var(--accent)',
+                  backgroundColor: 'var(--primary-soft)',
+                  border: '1px solid var(--primary)',
+                  color: 'var(--primary)',
                   fontSize: '0.75rem',
                   fontWeight: 600,
                 }}
               >
                 <Lock size={13} />
-                <span>Identities hidden</span>
+                <span>{COPY.brand.namesHidden}</span>
               </div>
             )}
           </div>
@@ -318,14 +351,6 @@ export const AppShell: React.FC<AppShellProps> = ({
           .mobile-menu-btn {
             display: flex !important;
           }
-        }
-        @keyframes pulseSkeleton {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.45; }
-        }
-        @keyframes fadeInModal {
-          from { opacity: 0; transform: scale(0.97); }
-          to { opacity: 1; transform: scale(1); }
         }
       `}</style>
     </div>

@@ -2,41 +2,79 @@
   --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'IBM Plex Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* Color Palette */
-  --bg: #F5F3EE;
+  /* PART 1: Light Color Theme */
+  --bg: #F3F6FA;
   --surface: #FFFFFF;
-  --line: #E3E0D8;
-  --ink: #14181F;
-  --muted: #5B6470;
-  
-  --accent: #0B5B50;
-  --accent-hover: #08473E;
-  --accent-soft: #E3F0ED;
-  --accent-soft-hover: #D5E8E4;
+  --surface-2: #F8FAFC;
+  --row-hover: #EEF4FB;
+  --line: #DDE3EC;
+  --line-strong: #71849D; /* Contrast ratio 3.74:1 against --surface-2 for dashed border */
 
-  /* Risk Chips */
-  --risk-high-text: #A6231B;
-  --risk-high-bg: #FCEBE9;
-  --risk-medium-text: #8A4B05;
-  --risk-medium-bg: #FDF0DC;
-  --risk-low-text: #1F6B47;
-  --risk-low-bg: #E6F3EC;
+  --ink: #0F1B33;
+  --muted: #4B5870;
 
-  /* Amber Indicator */
-  --amber-text: #8A4B05;
-  --amber-bg: #FDF0DC;
+  /* Sidebar */
+  --side-bg: #0E1F45;
+  --side-active: #1C3366;
+  --side-text: #C9D3E8;
+  --side-muted: #94A6CC;
 
-  /* Tokens & Borders */
-  --token-bg: #EFEDE6;
-  --token-line: #DDD9CE;
-  --dashed-border: #C9C4B8;
+  /* Primary Brand */
+  --primary: #0F766E;
+  --primary-hover: #0D615B;
+  --primary-soft: #E0F2F0;
 
-  /* Radii & Spacing */
+  /* Risk & Status Colors */
+  --high: #A6231B;
+  --high-bg: #FCEBE9;
+  --high-border: #F7C8C4;
+
+  --med: #8A4B05;
+  --med-bg: #FDF0DC;
+  --med-border: #F7D9B2;
+
+  --low: #1F6B47;
+  --low-bg: #E6F3EC;
+  --low-border: #C6E7D5;
+
+  --info: #1D4F91;
+  --info-bg: #E6EFFB;
+  --info-border: #BDD4F5;
+
+  --warn-pill: #7A4100;
+  --warn-pill-bg: #FFE9C2;
+  --warn-pill-border: #F5D394;
+
+  --danger: #B42318;
+  --danger-hover: #911C13;
+  --danger-bg: #FEE4E2;
+  --danger-border: #FDA29B;
+
+  /* Agent Check Colors */
+  --agent-pattern: #0072B2;
+  --agent-watchlist: #B45F06;
+  --agent-behaviour: #00785A;
+  --agent-graph: #8E3F7B;
+
+  /* Neutral and Helper Tokens */
+  --neutral-bg: #EAEFF5;
+  --neutral-text: #4B5870;
+  --neutral-border: #D0D9E5;
+
+  --token-bg: #EEF2F6;
+  --token-border: #D5DFEB;
+
+  --white: #FFFFFF;
+  --black: #000000;
+  --modal-backdrop: rgba(14, 31, 69, 0.6);
+  --focus-ring: #0F766E;
+
+  /* Radii & Shadows */
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
-  --shadow-card: 0 1px 2px rgba(20, 24, 31, 0.03);
-  --shadow-modal: 0 16px 40px rgba(20, 24, 31, 0.12);
+  --shadow-card: 0 1px 3px rgba(15, 27, 51, 0.05);
+  --shadow-modal: 0 20px 48px rgba(14, 31, 69, 0.22);
 
   /* Layout */
   --sidebar-width: 232px;
@@ -60,7 +98,7 @@ body {
 }
 
 a {
-  color: inherit;
+  color: var(--primary);
   text-decoration: none;
 }
 
@@ -78,19 +116,28 @@ input, select, textarea {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
-/* Custom Utilities */
+/* Utilities */
 .mono {
   font-family: var(--font-mono);
 }
 
-/* Card pattern */
 .tessera-card {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
+}
+
+@keyframes pulseSkeleton {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
 }

@@ -19,6 +19,7 @@ import { Chip } from '../components/common/Chip';
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
 import { ErrorBanner } from '../components/common/ErrorBanner';
+import { COPY } from '../copy';
 
 export const RevealRequestsPage: React.FC = () => {
   const { user, hasPermission, recordRevealedIdentity } = useAuth();
@@ -51,14 +52,15 @@ export const RevealRequestsPage: React.FC = () => {
       const data = await api.listReveals();
       setReveals(data);
     } catch (err: unknown) {
-      setError((err as Error).message || 'Failed to load reveal requests');
+      const errorMsg = (err as Error).message || COPY.auth.networkError;
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    document.title = 'Tessera — Reveal Requests';
+    document.title = `${COPY.brand.name} — ${COPY.nameRequests.title}`;
   }, []);
 
   useEffect(() => {
@@ -97,7 +99,7 @@ export const RevealRequestsPage: React.FC = () => {
       setApprovalResult(res);
       await fetchReveals();
     } catch (err: unknown) {
-      setActionError((err as Error).message || 'Failed to approve reveal request');
+      setActionError((err as Error).message || COPY.auth.networkError);
       setRequestToApprove(null);
     } finally {
       setApproving(false);
@@ -114,7 +116,7 @@ export const RevealRequestsPage: React.FC = () => {
       setRequestToDeny(null);
       await fetchReveals();
     } catch (err: unknown) {
-      setActionError((err as Error).message || 'Failed to deny reveal request');
+      setActionError((err as Error).message || COPY.auth.networkError);
       setRequestToDeny(null);
     } finally {
       setDenying(false);
@@ -130,7 +132,7 @@ export const RevealRequestsPage: React.FC = () => {
   const columns: Column<RevealRequestDTO>[] = [
     {
       key: 'id',
-      header: 'Request ID',
+      header: COPY.nameRequests.table.id,
       width: '130px',
       render: (r) => (
         <span className="mono" style={{ fontWeight: 500, fontSize: '0.8125rem' }}>
@@ -140,7 +142,7 @@ export const RevealRequestsPage: React.FC = () => {
     },
     {
       key: 'case_id',
-      header: 'Case ID',
+      header: COPY.nameRequests.table.caseId,
       width: '120px',
       render: (r) => (
         <Link
@@ -149,8 +151,8 @@ export const RevealRequestsPage: React.FC = () => {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.3rem',
-            color: 'var(--accent)',
-            fontWeight: 600,
+            color: 'var(--primary)',
+            fontWeight: 500,
           }}
         >
           <span className="mono">{r.case_id}</span>
@@ -160,42 +162,27 @@ export const RevealRequestsPage: React.FC = () => {
     },
     {
       key: 'requested_by',
-      header: 'Requested By',
-      width: '150px',
+      header: COPY.nameRequests.table.requestedBy,
+      width: '140px',
       render: (r) => {
-        const isSelf = r.requested_by === user?.id;
+        const isOwn = r.requested_by === user?.username || r.requested_by === user?.id;
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span style={{ fontSize: '0.8125rem' }}>{r.requested_by}</span>
-            {isSelf && (
-              <span
-                style={{
-                  fontSize: '0.6875rem',
-                  padding: '0.1rem 0.35rem',
-                  borderRadius: '3px',
-                  backgroundColor: 'var(--accent-soft)',
-                  color: 'var(--accent)',
-                  fontWeight: 600,
-                }}
-              >
-                You
-              </span>
-            )}
-          </div>
+          <span style={{ fontWeight: isOwn ? 600 : 400, color: 'var(--ink)' }}>
+            {r.requested_by} {isOwn && <span style={{ color: 'var(--primary)' }}>(you)</span>}
+          </span>
         );
       },
     },
     {
       key: 'reason',
-      header: 'Justification Reason',
+      header: COPY.nameRequests.table.reason,
       render: (r) => (
         <div
           style={{
             maxWidth: '320px',
             fontSize: '0.8125rem',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
+            color: 'var(--ink)',
+            lineHeight: 1.4,
           }}
           title={r.reason}
         >
@@ -205,84 +192,74 @@ export const RevealRequestsPage: React.FC = () => {
     },
     {
       key: 'status',
-      header: 'Status',
-      width: '110px',
-      render: (r) => (
-        <Chip
-          label={r.status}
-          variant={
-            r.status === 'APPROVED' ? 'low' : r.status === 'DENIED' ? 'high' : 'amber'
-          }
-        />
-      ),
+      header: COPY.nameRequests.table.status,
+      width: '120px',
+      render: (r) => {
+        const status = r.status.toUpperCase();
+        const variant =
+          status === 'APPROVED' ? 'low' : status === 'DENIED' ? 'high' : 'amber';
+        return (
+          <Chip
+            label={COPY.statusLabels[status] || status}
+            variant={variant}
+          />
+        );
+      },
     },
     {
       key: 'approved_by',
-      header: 'Decided By',
+      header: COPY.nameRequests.table.handledBy,
       width: '130px',
       render: (r) => (
-        <span style={{ fontSize: '0.8125rem', color: r.approved_by ? 'var(--ink)' : 'var(--muted)' }}>
+        <span style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
           {r.approved_by || '—'}
         </span>
       ),
     },
     {
-      key: 'revealed_at',
-      header: 'Decision Time',
-      width: '120px',
-      render: (r) => (
-        <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
-          {r.revealed_at ? new Date(r.revealed_at).toLocaleDateString() : '—'}
-        </span>
-      ),
-    },
-    {
       key: 'actions',
-      header: 'Actions',
-      width: '180px',
+      header: COPY.nameRequests.table.actions,
+      width: '170px',
       align: 'right',
       render: (r) => {
-        if (r.status !== 'PENDING') {
-          return <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Completed</span>;
-        }
-
-        if (!canApprove) {
+        if (r.status.toUpperCase() !== 'PENDING') {
           return (
-            <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }} title="Requires SeniorInvestigator permission">
-              Review only
+            <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+              Completed
             </span>
           );
         }
 
-        const isOwnRequest = r.requested_by === user?.id;
+        const isOwn = r.requested_by === user?.username || r.requested_by === user?.id;
+
+        if (!canApprove) {
+          return (
+            <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+              Awaiting review
+            </span>
+          );
+        }
 
         return (
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <span title={isOwn ? COPY.nameRequests.actions.ownRequestTooltip : undefined}>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={isOwn}
+                onClick={() => setRequestToApprove(r)}
+                icon={<CheckCircle size={14} />}
+              >
+                {COPY.nameRequests.actions.approve}
+              </Button>
+            </span>
             <Button
-              variant="accent"
+              variant="danger"
               size="sm"
-              disabled={isOwnRequest}
-              title={isOwnRequest ? 'You cannot approve your own request' : 'Approve and unmask PII'}
-              onClick={(e) => {
-                e.stopPropagation();
-                setRequestToApprove(r);
-              }}
-              icon={<CheckCircle size={14} />}
-            >
-              Approve
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setRequestToDeny(r);
-              }}
+              onClick={() => setRequestToDeny(r)}
               icon={<XCircle size={14} />}
-              style={{ color: 'var(--risk-high-text)' }}
             >
-              Deny
+              {COPY.nameRequests.actions.decline}
             </Button>
           </div>
         );
@@ -291,99 +268,116 @@ export const RevealRequestsPage: React.FC = () => {
   ];
 
   return (
-    <AppShell searchPlaceholder="Filter reveal requests...">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1100px', margin: '0 auto' }}>
-        {/* Header */}
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
-            Gated identity reveal requests
-          </h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--muted)', marginTop: '0.2rem' }}>
-            Regulatory dual-control workflow for unmasking PII from the encrypted Tokenization Vault.
-          </p>
-        </div>
-
-        {/* Global Error Alerts */}
-        {error && <ErrorBanner message={error} onRetry={fetchReveals} />}
-        {actionError && <ErrorBanner message={actionError} title="Action could not be completed" />}
-
-        {/* Dual Control Governance Notice */}
-        <div
-          className="tessera-card"
-          style={{
-            padding: '1rem 1.25rem',
-            backgroundColor: '#FAF9F5',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            fontSize: '0.8125rem',
-            color: 'var(--muted)',
-          }}
-        >
-          <KeyRound size={18} color="var(--accent)" style={{ flexShrink: 0 }} />
-          <div>
-            <strong>Dual-Control Security Rule:</strong> Analysts may request an identity unmask. Only an independent Senior Investigator who did not create the request may grant access. System Administrators are prohibited from approving requests.
-          </div>
-        </div>
-
-        {/* Tabs Bar */}
+    <AppShell>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* Page Title & Context */}
         <div
           style={{
             display: 'flex',
-            borderBottom: '1px solid var(--line)',
+            alignItems: 'baseline',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
             gap: '0.5rem',
           }}
         >
-          {(['PENDING', 'APPROVED', 'DENIED', 'ALL'] as const).map((tab) => {
-            const count =
-              tab === 'ALL'
-                ? reveals.length
-                : reveals.filter((r) => r.status.toUpperCase() === tab).length;
-            const isActive = activeTab === tab;
-
-            return (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                style={{
-                  padding: '0.625rem 1rem',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  color: isActive ? 'var(--accent)' : 'var(--muted)',
-                  borderBottom: isActive ? '2px solid var(--accent)' : '2px solid transparent',
-                  marginBottom: '-1px',
-                  backgroundColor: 'transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                }}
-              >
-                <span>{tab.charAt(0) + tab.slice(1).toLowerCase()}</span>
-                <span
-                  style={{
-                    fontSize: '0.6875rem',
-                    padding: '0.1rem 0.4rem',
-                    borderRadius: '100px',
-                    backgroundColor: isActive ? 'var(--accent-soft)' : '#EBE8DE',
-                    fontWeight: 600,
-                  }}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+          <div>
+            <h1
+              style={{
+                fontSize: '1.5rem',
+                fontWeight: 600,
+                color: 'var(--ink)',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {COPY.nameRequests.title}
+            </h1>
+            <p style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>
+              {COPY.nameRequests.subLine}
+            </p>
+          </div>
         </div>
 
-        {/* Requests Table */}
+        {/* Action Error / Server Rejections */}
+        {actionError && <ErrorBanner message={actionError} onRetry={fetchReveals} />}
+        {error && <ErrorBanner message={error} onRetry={fetchReveals} />}
+
+        {/* Tab Filters */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '0.5rem',
+            borderBottom: '1px solid var(--line)',
+            paddingBottom: '0.25rem',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setActiveTab('PENDING')}
+            style={{
+              padding: '0.5rem 1rem',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: activeTab === 'PENDING' ? 'var(--primary)' : 'var(--muted)',
+              borderBottom: activeTab === 'PENDING' ? '2px solid var(--primary)' : '2px solid transparent',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {COPY.nameRequests.tabs.pending} (
+            {reveals.filter((r) => r.status.toUpperCase() === 'PENDING').length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('APPROVED')}
+            style={{
+              padding: '0.5rem 1rem',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: activeTab === 'APPROVED' ? 'var(--primary)' : 'var(--muted)',
+              borderBottom: activeTab === 'APPROVED' ? '2px solid var(--primary)' : '2px solid transparent',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {COPY.nameRequests.tabs.approved} (
+            {reveals.filter((r) => r.status.toUpperCase() === 'APPROVED').length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('DENIED')}
+            style={{
+              padding: '0.5rem 1rem',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: activeTab === 'DENIED' ? 'var(--primary)' : 'var(--muted)',
+              borderBottom: activeTab === 'DENIED' ? '2px solid var(--primary)' : '2px solid transparent',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {COPY.nameRequests.tabs.denied} (
+            {reveals.filter((r) => r.status.toUpperCase() === 'DENIED').length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('ALL')}
+            style={{
+              padding: '0.5rem 1rem',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: activeTab === 'ALL' ? 'var(--primary)' : 'var(--muted)',
+              borderBottom: activeTab === 'ALL' ? '2px solid var(--primary)' : '2px solid transparent',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {COPY.nameRequests.tabs.all} ({reveals.length})
+          </button>
+        </div>
+
+        {/* Table of Reveal Requests */}
         <DataTable
           columns={columns}
           data={filteredReveals}
           keyExtractor={(r) => r.id}
           loading={loading}
-          emptyTitle={`No ${activeTab.toLowerCase()} reveal requests`}
-          emptyDescription="Requests submitted by analysts for PII unmasking will appear here for compliance review."
+          emptyTitle={COPY.nameRequests.emptyState}
         />
       </div>
 
@@ -391,15 +385,24 @@ export const RevealRequestsPage: React.FC = () => {
       <Modal
         isOpen={!!requestToApprove}
         onClose={() => setRequestToApprove(null)}
-        title="Approve Customer Identity Reveal"
+        title={COPY.nameRequests.approveModal.title}
         maxWidth="500px"
         footer={
           <>
-            <Button variant="outline" onClick={() => setRequestToApprove(null)} disabled={approving}>
-              Cancel
+            <Button
+              variant="outline"
+              onClick={() => setRequestToApprove(null)}
+              disabled={approving}
+            >
+              {COPY.nameRequests.approveModal.cancel}
             </Button>
-            <Button variant="accent" onClick={handleConfirmApprove} loading={approving} icon={<CheckCircle size={16} />}>
-              Confirm approval & unmask
+            <Button
+              variant="primary"
+              onClick={handleConfirmApprove}
+              loading={approving}
+              icon={<CheckCircle size={16} />}
+            >
+              {COPY.nameRequests.approveModal.confirm}
             </Button>
           </>
         }
@@ -409,8 +412,9 @@ export const RevealRequestsPage: React.FC = () => {
             style={{
               padding: '0.75rem 1rem',
               borderRadius: 'var(--radius-md)',
-              backgroundColor: 'var(--amber-bg)',
-              color: 'var(--amber-text)',
+              backgroundColor: 'var(--surface-2)',
+              border: '1px solid var(--line)',
+              color: 'var(--muted)',
               fontSize: '0.8125rem',
               display: 'flex',
               alignItems: 'center',
@@ -418,47 +422,75 @@ export const RevealRequestsPage: React.FC = () => {
             }}
           >
             <ShieldAlert size={18} style={{ flexShrink: 0 }} />
-            <span>This approval releases encrypted customer PII and writes a permanent entry to the compliance audit log.</span>
+            <span>{COPY.nameRequests.approveModal.help}</span>
           </div>
 
           <div style={{ fontSize: '0.875rem', color: 'var(--ink)' }}>
-            Are you sure you want to approve reveal request <strong className="mono">{requestToApprove?.id}</strong> for Case{' '}
-            <strong className="mono">{requestToApprove?.case_id}</strong>?
+            {COPY.nameRequests.approveModal.casePrompt(requestToApprove?.case_id || '')}
           </div>
 
-          <div style={{ backgroundColor: '#FAF9F5', padding: '0.75rem', borderRadius: 'var(--radius-md)', fontSize: '0.8125rem' }}>
-            <div style={{ color: 'var(--muted)', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '0.2rem' }}>
-              Requester Justification
+          <div
+            style={{
+              backgroundColor: 'var(--surface-2)',
+              padding: '0.75rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--line)',
+              fontSize: '0.8125rem',
+            }}
+          >
+            <div
+              style={{
+                color: 'var(--muted)',
+                fontSize: '0.75rem',
+                textTransform: 'uppercase',
+                marginBottom: '0.2rem',
+              }}
+            >
+              {COPY.nameRequests.table.reason}
             </div>
             <div>{requestToApprove?.reason}</div>
           </div>
         </div>
       </Modal>
 
-      {/* Deny Confirm Modal */}
+      {/* Decline Confirm Modal */}
       <Modal
         isOpen={!!requestToDeny}
         onClose={() => setRequestToDeny(null)}
-        title="Deny Customer Identity Reveal"
+        title={COPY.nameRequests.declineModal.title}
         maxWidth="460px"
         footer={
           <>
-            <Button variant="outline" onClick={() => setRequestToDeny(null)} disabled={denying}>
-              Cancel
+            <Button
+              variant="outline"
+              onClick={() => setRequestToDeny(null)}
+              disabled={denying}
+            >
+              {COPY.nameRequests.declineModal.cancel}
             </Button>
-            <Button variant="danger" onClick={handleConfirmDeny} loading={denying} icon={<XCircle size={16} />}>
-              Confirm denial
+            <Button
+              variant="danger"
+              onClick={handleConfirmDeny}
+              loading={denying}
+              icon={<XCircle size={16} />}
+            >
+              {COPY.nameRequests.declineModal.confirm}
             </Button>
           </>
         }
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.875rem', color: 'var(--ink)' }}>
-          <p>
-            Are you sure you want to deny reveal request <strong className="mono">{requestToDeny?.id}</strong> for Case{' '}
-            <strong className="mono">{requestToDeny?.case_id}</strong>?
-          </p>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            fontSize: '0.875rem',
+            color: 'var(--ink)',
+          }}
+        >
+          <p>{COPY.nameRequests.declineModal.casePrompt(requestToDeny?.case_id || '')}</p>
           <div style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
-            The assigned analyst will be notified that this request was rejected under dual-control guidelines.
+            {COPY.nameRequests.declineModal.help}
           </div>
         </div>
       </Modal>
@@ -467,11 +499,11 @@ export const RevealRequestsPage: React.FC = () => {
       <Modal
         isOpen={!!approvalResult}
         onClose={() => setApprovalResult(null)}
-        title="Identity Decrypted Successfully"
+        title={COPY.nameRequests.successModal.title}
         maxWidth="540px"
         footer={
           <Button variant="dark" onClick={() => setApprovalResult(null)}>
-            Acknowledge & close
+            {COPY.nameRequests.successModal.close}
           </Button>
         }
       >
@@ -479,8 +511,9 @@ export const RevealRequestsPage: React.FC = () => {
           <div
             style={{
               padding: '0.75rem 1rem',
-              backgroundColor: 'var(--risk-low-bg)',
-              color: 'var(--risk-low-text)',
+              backgroundColor: 'var(--warn-pill-bg)',
+              color: 'var(--warn-pill)',
+              border: '1px solid var(--warn-pill-border)',
               borderRadius: 'var(--radius-md)',
               fontSize: '0.8125rem',
               display: 'flex',
@@ -488,8 +521,8 @@ export const RevealRequestsPage: React.FC = () => {
               gap: '0.5rem',
             }}
           >
-            <CheckCircle size={18} style={{ flexShrink: 0 }} />
-            <span>Dual-control approval recorded. Decrypted values are held strictly in memory for this session.</span>
+            <KeyRound size={18} style={{ flexShrink: 0 }} />
+            <span>{COPY.nameRequests.successModal.notice}</span>
           </div>
 
           <div
@@ -497,26 +530,53 @@ export const RevealRequestsPage: React.FC = () => {
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
               gap: '1rem',
-              backgroundColor: '#FAF9F5',
+              backgroundColor: 'var(--surface-2)',
               padding: '1.25rem',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--line)',
             }}
           >
             <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>
-                Real Sender Identity
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--muted)',
+                  textTransform: 'uppercase',
+                  marginBottom: '0.2rem',
+                }}
+              >
+                {COPY.nameRequests.successModal.customerName}
               </div>
-              <div style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--ink)' }}>
+              <div
+                style={{
+                  fontSize: '1.125rem',
+                  fontWeight: 600,
+                  color: 'var(--ink)',
+                }}
+              >
                 {approvalResult?.sender_real_value}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>
-                Real Beneficiary Account
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--muted)',
+                  textTransform: 'uppercase',
+                  marginBottom: '0.2rem',
+                }}
+              >
+                {COPY.nameRequests.successModal.recipientName}
               </div>
-              <div className="mono" style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--ink)' }}>
+              <div
+                className="mono"
+                style={{
+                  fontSize: '1.125rem',
+                  fontWeight: 600,
+                  color: 'var(--ink)',
+                }}
+              >
                 {approvalResult?.receiver_real_value}
               </div>
             </div>
@@ -526,7 +586,7 @@ export const RevealRequestsPage: React.FC = () => {
           <div
             style={{
               padding: '0.75rem 1rem',
-              backgroundColor: '#FFFFFF',
+              backgroundColor: 'var(--surface)',
               border: '1px solid var(--line)',
               borderRadius: 'var(--radius-md)',
               display: 'flex',
@@ -535,12 +595,26 @@ export const RevealRequestsPage: React.FC = () => {
               fontSize: '0.75rem',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--muted)' }}>
-              <span>Audit Log Record:</span>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                color: 'var(--muted)',
+              }}
+            >
+              <span>{COPY.nameRequests.successModal.logId}:</span>
               <span className="mono">{approvalResult?.audit_log_id}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--muted)' }}>SHA-256 Block Hash:</span>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <span style={{ color: 'var(--muted)' }}>
+                {COPY.nameRequests.successModal.fingerprint}:
+              </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <span className="mono" style={{ color: 'var(--ink)' }}>
                   {approvalResult?.hash.substring(0, 16)}...
@@ -548,11 +622,11 @@ export const RevealRequestsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => approvalResult && copyHash(approvalResult.hash)}
-                  aria-label="Copy full block hash"
-                  title={copiedHash ? 'Copied full hash' : 'Copy full hash'}
+                  aria-label={`${COPY.common.copy} ${COPY.nameRequests.successModal.fingerprint}`}
+                  title={copiedHash ? COPY.common.copied : COPY.common.copy}
                   style={{
                     padding: '2px',
-                    color: copiedHash ? 'var(--accent)' : 'var(--muted)',
+                    color: copiedHash ? 'var(--primary)' : 'var(--muted)',
                   }}
                 >
                   {copiedHash ? <Check size={13} /> : <Copy size={13} />}

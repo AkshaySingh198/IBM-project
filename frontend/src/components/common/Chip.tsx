@@ -2,11 +2,16 @@ import React from 'react';
 
 export type ChipVariant =
   | 'high'
+  | 'critical'
   | 'medium'
+  | 'med'
   | 'low'
+  | 'info'
   | 'neutral'
+  | 'primary'
   | 'accent'
-  | 'amber';
+  | 'amber'
+  | 'warn';
 
 interface ChipProps {
   label: string;
@@ -22,22 +27,55 @@ export const Chip: React.FC<ChipProps> = ({
   score,
   style,
 }) => {
-  const getStyles = (): { bg: string; text: string; border?: string } => {
+  const getStyles = (): { bg: string; text: string; border: string } => {
     switch (variant.toLowerCase()) {
       case 'high':
       case 'critical':
-        return { bg: 'var(--risk-high-bg)', text: 'var(--risk-high-text)', border: '#F7C8C4' };
+        return {
+          bg: 'var(--high-bg)',
+          text: 'var(--high)',
+          border: 'var(--high-border)',
+        };
       case 'medium':
-        return { bg: 'var(--risk-medium-bg)', text: 'var(--risk-medium-text)', border: '#F7D9B2' };
+      case 'med':
+        return {
+          bg: 'var(--med-bg)',
+          text: 'var(--med)',
+          border: 'var(--med-border)',
+        };
       case 'low':
-        return { bg: 'var(--risk-low-bg)', text: 'var(--risk-low-text)', border: '#C6E7D5' };
-      case 'accent':
-        return { bg: 'var(--accent-soft)', text: 'var(--accent)', border: 'var(--accent)' };
+        return {
+          bg: 'var(--low-bg)',
+          text: 'var(--low)',
+          border: 'var(--low-border)',
+        };
+      case 'info':
+        return {
+          bg: 'var(--info-bg)',
+          text: 'var(--info)',
+          border: 'var(--info-border)',
+        };
       case 'amber':
-        return { bg: 'var(--amber-bg)', text: 'var(--amber-text)', border: '#F9DE96' };
+      case 'warn':
+        return {
+          bg: 'var(--warn-pill-bg)',
+          text: 'var(--warn-pill)',
+          border: 'var(--warn-pill-border)',
+        };
+      case 'primary':
+      case 'accent':
+        return {
+          bg: 'var(--primary-soft)',
+          text: 'var(--primary)',
+          border: 'var(--primary)',
+        };
       case 'neutral':
       default:
-        return { bg: '#ECEAE4', text: 'var(--muted)', border: 'var(--line)' };
+        return {
+          bg: 'var(--neutral-bg)',
+          text: 'var(--neutral-text)',
+          border: 'var(--neutral-border)',
+        };
     }
   };
 
@@ -56,7 +94,7 @@ export const Chip: React.FC<ChipProps> = ({
         letterSpacing: '0.02em',
         backgroundColor: bg,
         color: text,
-        border: `1px solid ${border || 'transparent'}`,
+        border: `1px solid ${border}`,
         whiteSpace: 'nowrap',
         ...style,
       }}

@@ -1,14 +1,14 @@
 import React from 'react';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'dark' | 'accent' | 'outline' | 'danger';
+  variant?: 'primary' | 'dark' | 'outline' | 'danger' | 'accent';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   icon?: React.ReactNode;
 }
 
 export const Button: React.FC<ButtonProps> = ({
-  variant = 'dark',
+  variant = 'primary',
   size = 'md',
   loading = false,
   icon,
@@ -19,29 +19,30 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   const getVariantStyles = (): React.CSSProperties => {
     switch (variant) {
+      case 'primary':
       case 'accent':
         return {
-          backgroundColor: 'var(--accent)',
-          color: '#FFFFFF',
-          border: '1px solid var(--accent)',
+          backgroundColor: 'var(--primary)',
+          color: 'var(--white)',
+          border: '1px solid var(--primary)',
         };
       case 'outline':
         return {
-          backgroundColor: 'transparent',
+          backgroundColor: 'var(--white)',
           color: 'var(--ink)',
           border: '1px solid var(--line)',
         };
       case 'danger':
         return {
-          backgroundColor: 'var(--risk-high-bg)',
-          color: 'var(--risk-high-text)',
-          border: '1px solid #F7C8C4',
+          backgroundColor: 'var(--danger)',
+          color: 'var(--white)',
+          border: '1px solid var(--danger)',
         };
       case 'dark':
       default:
         return {
           backgroundColor: 'var(--ink)',
-          color: '#FFFFFF',
+          color: 'var(--white)',
           border: '1px solid var(--ink)',
         };
     }
@@ -66,7 +67,7 @@ export const Button: React.FC<ButtonProps> = ({
         return {
           padding: '0.5rem 1rem',
           fontSize: '0.875rem',
-          minHeight: '44px', // 44px min accessible touch target
+          minHeight: '44px', // 44px accessible touch target
         };
     }
   };

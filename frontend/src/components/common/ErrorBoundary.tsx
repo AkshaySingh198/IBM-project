@@ -2,6 +2,7 @@ import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from './Button';
+import { COPY } from '../../copy';
 
 interface Props {
   children: ReactNode;
@@ -23,7 +24,6 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // In production we would report to an audit/monitoring service, avoiding PII leakage
     void error;
     void errorInfo;
   }
@@ -55,8 +55,8 @@ export class ErrorBoundary extends Component<Props, State> {
                 width: '48px',
                 height: '48px',
                 borderRadius: '50%',
-                backgroundColor: 'var(--risk-high-bg)',
-                color: 'var(--risk-high-text)',
+                backgroundColor: 'var(--high-bg)',
+                color: 'var(--high)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -65,18 +65,32 @@ export class ErrorBoundary extends Component<Props, State> {
             >
               <AlertTriangle size={24} />
             </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--ink)', marginBottom: '0.5rem' }}>
+            <h2
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 600,
+                color: 'var(--ink)',
+                marginBottom: '0.5rem',
+              }}
+            >
               Something went wrong
             </h2>
-            <p style={{ fontSize: '0.875rem', color: 'var(--muted)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-              An unexpected interface error occurred. You can reload the page to restore state safely.
+            <p
+              style={{
+                fontSize: '0.875rem',
+                color: 'var(--muted)',
+                marginBottom: '1.5rem',
+                lineHeight: 1.5,
+              }}
+            >
+              An unexpected interface error occurred. You can reload the page to continue.
             </p>
             <Button
-              variant="dark"
+              variant="primary"
               onClick={() => window.location.reload()}
               icon={<RefreshCw size={16} />}
             >
-              Reload application
+              {COPY.common.tryAgain}
             </Button>
           </div>
         </div>

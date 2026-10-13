@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { COPY } from '../../copy';
 
 interface ModalProps {
   isOpen: boolean;
@@ -51,7 +52,7 @@ export const Modal: React.FC<ModalProps> = ({
         alignItems: 'center',
         justifyContent: 'center',
         padding: '1.5rem',
-        backgroundColor: 'rgba(20, 24, 31, 0.45)',
+        backgroundColor: 'var(--modal-backdrop)',
         backdropFilter: 'blur(2px)',
       }}
       onClick={(e) => {
@@ -84,13 +85,16 @@ export const Modal: React.FC<ModalProps> = ({
             borderBottom: '1px solid var(--line)',
           }}
         >
-          <h2 id="modal-title" style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--ink)' }}>
+          <h2
+            id="modal-title"
+            style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--ink)' }}
+          >
             {title}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close dialog"
+            aria-label={COPY.common.close}
             style={{
               padding: '0.25rem',
               color: 'var(--muted)',
@@ -113,7 +117,7 @@ export const Modal: React.FC<ModalProps> = ({
             style={{
               padding: '1rem 1.5rem',
               borderTop: '1px solid var(--line)',
-              backgroundColor: '#FAF9F5',
+              backgroundColor: 'var(--surface-2)',
               display: 'flex',
               justifyContent: 'flex-end',
               gap: '0.75rem',

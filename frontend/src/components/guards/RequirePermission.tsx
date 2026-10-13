@@ -2,13 +2,14 @@ import React from 'react';
 import { ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { AppShell } from '../layout/AppShell';
+import { COPY } from '../../copy';
 
 interface RequirePermissionProps {
   permission: string;
   children: React.ReactNode;
 }
 
-export const RequirePermission: React.FC<RequirePermissionProps> = ({ permission, children }) => {
+export const RequirePermission: React.FC<RequirePermissionProps> = ({ children, permission }) => {
   const { hasPermission, user } = useAuth();
 
   if (!hasPermission(permission)) {
@@ -29,8 +30,8 @@ export const RequirePermission: React.FC<RequirePermissionProps> = ({ permission
               width: '48px',
               height: '48px',
               borderRadius: '50%',
-              backgroundColor: 'var(--risk-high-bg)',
-              color: 'var(--risk-high-text)',
+              backgroundColor: 'var(--high-bg)',
+              color: 'var(--high)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -39,19 +40,26 @@ export const RequirePermission: React.FC<RequirePermissionProps> = ({ permission
           >
             <ShieldAlert size={24} />
           </div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--ink)', marginBottom: '0.5rem' }}>
-            Access Restricted
+          <h2
+            style={{
+              fontSize: '1.25rem',
+              fontWeight: 600,
+              color: 'var(--ink)',
+              marginBottom: '0.5rem',
+            }}
+          >
+            {COPY.auth.accessDenied}
           </h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--muted)', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-            Your role (<strong>{user?.role_name || 'Current User'}</strong>) does not have the required permission (
-            <code className="mono" style={{ padding: '0.1rem 0.3rem', background: '#FAF9F5', borderRadius: '4px' }}>
-              {permission}
-            </code>
-            ) to view this module.
+          <p
+            style={{
+              fontSize: '0.875rem',
+              color: 'var(--muted)',
+              lineHeight: 1.6,
+              marginBottom: '1.5rem',
+            }}
+          >
+            Your signed-in account (<strong>{user?.role_name || user?.username || 'User'}</strong>) cannot view this page.
           </p>
-          <div style={{ fontSize: '0.8125rem', color: 'var(--muted)', borderTop: '1px solid var(--line)', paddingTop: '1rem' }}>
-            If you need access to this resource, contact your system compliance administrator.
-          </div>
         </div>
       </AppShell>
     );

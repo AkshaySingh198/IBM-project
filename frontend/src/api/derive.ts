@@ -26,19 +26,48 @@ export interface SignalContribution {
   weight: number;
   percent: number;
   detected: boolean;
+  colorVar: string;
 }
 
 /**
- * Maps findings to signals using Aggregator heuristic weights:
+ * Maps findings to signals using Aggregator weights:
  * Pattern: 30, KYC: 30, Behavioral: 30, Graph: 10
  */
 export function contributions(caseData?: FraudCaseDTO | null): SignalContribution[] {
   if (!caseData || !caseData.findings) {
     return [
-      { agent: 'PATTERN_AGENT', label: 'Pattern Analysis', weight: 30, percent: 0, detected: false },
-      { agent: 'KYC_AGENT', label: 'KYC & Watchlist', weight: 30, percent: 0, detected: false },
-      { agent: 'BEHAVIORAL_AGENT', label: 'Behavioral Anomaly', weight: 30, percent: 0, detected: false },
-      { agent: 'GRAPH_AGENT', label: 'Graph Cluster', weight: 10, percent: 0, detected: false },
+      {
+        agent: 'PATTERN_AGENT',
+        label: 'Past fraud match',
+        weight: 30,
+        percent: 0,
+        detected: false,
+        colorVar: 'var(--agent-pattern)',
+      },
+      {
+        agent: 'KYC_AGENT',
+        label: 'Watchlist check',
+        weight: 30,
+        percent: 0,
+        detected: false,
+        colorVar: 'var(--agent-watchlist)',
+      },
+      {
+        agent: 'BEHAVIORAL_AGENT',
+        label: 'Unusual behaviour',
+        weight: 30,
+        percent: 0,
+        detected: false,
+        colorVar: 'var(--agent-behaviour)',
+      },
+      {
+        agent: 'GRAPH_AGENT',
+        label: 'Linked accounts',
+        weight: 10,
+        percent: 0,
+        detected: false,
+        colorVar: 'var(--agent-graph)',
+      },
     ];
   }
 
@@ -47,27 +76,31 @@ export function contributions(caseData?: FraudCaseDTO | null): SignalContributio
   const signals = [
     {
       agent: 'PATTERN_AGENT',
-      label: 'Pattern Analysis',
+      label: 'Past fraud match',
       weight: 30,
       detected: detectedAgents.has('PATTERN_AGENT') || detectedAgents.has('PATTERN'),
+      colorVar: 'var(--agent-pattern)',
     },
     {
       agent: 'KYC_AGENT',
-      label: 'KYC & Watchlist',
+      label: 'Watchlist check',
       weight: 30,
       detected: detectedAgents.has('KYC_AGENT') || detectedAgents.has('KYC'),
+      colorVar: 'var(--agent-watchlist)',
     },
     {
       agent: 'BEHAVIORAL_AGENT',
-      label: 'Behavioral Anomaly',
+      label: 'Unusual behaviour',
       weight: 30,
       detected: detectedAgents.has('BEHAVIORAL_AGENT') || detectedAgents.has('BEHAVIORAL'),
+      colorVar: 'var(--agent-behaviour)',
     },
     {
       agent: 'GRAPH_AGENT',
-      label: 'Graph Cluster',
+      label: 'Linked accounts',
       weight: 10,
       detected: detectedAgents.has('GRAPH_AGENT') || detectedAgents.has('GRAPH'),
+      colorVar: 'var(--agent-graph)',
     },
   ];
 
@@ -77,7 +110,10 @@ export function contributions(caseData?: FraudCaseDTO | null): SignalContributio
 
   return signals.map((s) => ({
     ...s,
-    percent: s.detected && totalDetectedWeight > 0 ? Math.round((s.weight / totalDetectedWeight) * 100) : 0,
+    percent:
+      s.detected && totalDetectedWeight > 0
+        ? Math.round((s.weight / totalDetectedWeight) * 100)
+        : 0,
   }));
 }
 
@@ -92,7 +128,6 @@ export function tokenLabels(caseData?: FraudCaseDTO | null): string[] {
 
   // Extract from transaction fields
   if (caseData.transaction?.sender_token_id) {
-    // If it looks like tok_subj_1, check if text has token representation
     foundTokens.add(caseData.transaction.sender_token_id);
   }
   if (caseData.transaction?.receiver_token_id) {
@@ -100,7 +135,8 @@ export function tokenLabels(caseData?: FraudCaseDTO | null): string[] {
   }
 
   // Regex for token formats: PERSON_001, ACCOUNT_NUMBER_001, LOCATION_001, etc.
-  const tokenRegex = /\b(PERSON_\d+|ACCOUNT_NUMBER_\d+|LOCATION_\d+|DEVICE_ID_\d+|IP_ADDRESS_\d+)\b/g;
+  const tokenRegex =
+    /\b(PERSON_\d+|ACCOUNT_NUMBER_\d+|LOCATION_\d+|DEVICE_ID_\d+|IP_ADDRESS_\d+)\b/g;
 
   // Search in findings summaries
   if (caseData.findings) {

@@ -16,6 +16,7 @@ import { DataTable } from '../components/common/DataTable';
 import type { Column } from '../components/common/DataTable';
 import { Button } from '../components/common/Button';
 import { ErrorBanner } from '../components/common/ErrorBanner';
+import { COPY } from '../copy';
 
 export const AuditPage: React.FC = () => {
   const { hasPermission } = useAuth();
@@ -44,14 +45,15 @@ export const AuditPage: React.FC = () => {
       const data = await api.listAudit();
       setLogs(data);
     } catch (err: unknown) {
-      setError((err as Error).message || 'Failed to load audit logs');
+      const errorMsg = (err as Error).message || COPY.auth.networkError;
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    document.title = 'Tessera — Audit Log';
+    document.title = `${COPY.brand.name} — ${COPY.activityLog.title}`;
   }, []);
 
   useEffect(() => {
@@ -61,24 +63,7 @@ export const AuditPage: React.FC = () => {
 
   // Plain language translation of action types
   const formatActionName = (actionType: string): string => {
-    switch (actionType.toUpperCase()) {
-      case 'SYSTEM_INIT':
-        return 'System Initialized (Genesis)';
-      case 'USER_REGISTER':
-        return 'User Registered';
-      case 'LOGIN':
-        return 'User Authentication';
-      case 'REVEAL_REQUEST_SUBMITTED':
-        return 'Identity Reveal Requested';
-      case 'REVEAL_APPROVED':
-        return 'Identity Reveal Approved';
-      case 'REVEAL_DENIED':
-        return 'Identity Reveal Denied';
-      case 'VERDICT_OVERRIDE':
-        return 'Verdict Risk Overridden';
-      default:
-        return actionType.replace(/_/g, ' ');
-    }
+    return COPY.actionLabels[actionType.toUpperCase()] || actionType.replace(/_/g, ' ');
   };
 
   // Manual verification handler
@@ -89,7 +74,7 @@ export const AuditPage: React.FC = () => {
       const res = await api.verifyAudit();
       setVerificationResult(res);
     } catch (err: unknown) {
-      setVerifyError((err as Error).message || 'Failed to verify audit hash chain');
+      setVerifyError((err as Error).message || COPY.auth.networkError);
     } finally {
       setVerifying(false);
     }
@@ -109,7 +94,7 @@ export const AuditPage: React.FC = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err: unknown) {
-      setError((err as Error).message || `Failed to export ${format.toUpperCase()} report`);
+      setError((err as Error).message || COPY.auth.networkError);
     } finally {
       setExportingFormat(null);
     }
@@ -141,66 +126,78 @@ export const AuditPage: React.FC = () => {
   const columns: Column<AuditLogDTO>[] = [
     {
       key: 'created_at',
-      header: 'Timestamp (UTC)',
+      header: COPY.activityLog.table.time,
       width: '180px',
       render: (l) => (
-        <span className="mono" style={{ fontSize: '0.8125rem', color: 'var(--ink)' }}>
+        <span style={{ fontSize: '0.8125rem', color: 'var(--ink)' }}>
           {new Date(l.created_at).toLocaleString()}
         </span>
       ),
     },
     {
       key: 'actor_id',
-      header: 'Actor',
+      header: COPY.activityLog.table.actor,
       width: '150px',
       render: (l) => (
-        <span style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--ink)' }}>
+        <span style={{ fontWeight: 500, fontSize: '0.8125rem', color: 'var(--ink)' }}>
           {l.actor_id}
         </span>
       ),
     },
     {
       key: 'action_type',
-      header: 'Event Action',
+      header: COPY.activityLog.table.action,
       width: '210px',
       render: (l) => (
-        <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--accent)' }}>
+        <span
+          style={{
+            fontSize: '0.8125rem',
+            color: 'var(--ink)',
+            fontWeight: 500,
+          }}
+        >
           {formatActionName(l.action_type)}
         </span>
       ),
     },
     {
       key: 'target_id',
-      header: 'Target Resource',
-      width: '160px',
+      header: COPY.activityLog.table.target,
+      width: '130px',
       render: (l) => (
-        <span className="mono" style={{ fontSize: '0.8125rem', color: l.target_id ? 'var(--ink)' : 'var(--muted)' }}>
+        <span className="mono" style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
           {l.target_id || '—'}
         </span>
       ),
     },
     {
       key: 'hash',
-      header: 'SHA-256 Block Hash',
-      width: '170px',
+      header: COPY.activityLog.table.fingerprint,
       render: (l) => {
         const isCopied = copiedHash === l.hash;
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }} title={`Full Block Hash: ${l.hash}`}>
-            <span className="mono" style={{ fontSize: '0.8125rem', color: 'var(--ink)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span
+              className="mono"
+              style={{
+                fontSize: '0.8125rem',
+                color: 'var(--ink)',
+              }}
+              title={l.hash}
+            >
               {l.hash.substring(0, 10)}...
             </span>
             <button
               type="button"
               onClick={() => handleCopyHash(l.hash)}
-              aria-label={`Copy hash ${l.hash}`}
-              title={isCopied ? 'Copied' : 'Copy full hash'}
+              aria-label={`${COPY.common.copy} ${COPY.activityLog.table.fingerprint}`}
+              title={isCopied ? COPY.common.copied : COPY.common.copy}
               style={{
                 padding: '2px',
-                color: isCopied ? 'var(--accent)' : 'var(--muted)',
+                color: isCopied ? 'var(--primary)' : 'var(--muted)',
               }}
             >
-              {isCopied ? <Check size={12} /> : <Copy size={12} />}
+              {isCopied ? <Check size={13} /> : <Copy size={13} />}
             </button>
           </div>
         );
@@ -208,17 +205,18 @@ export const AuditPage: React.FC = () => {
     },
     {
       key: 'prev_hash',
-      header: 'Previous Hash',
-      width: '140px',
+      header: COPY.activityLog.table.previousFingerprint,
+      width: '150px',
       render: (l) => {
-        const isGenesis = l.prev_hash === '0000000000000000000000000000000000000000000000000000000000000000';
+        const isGenesis =
+          l.prev_hash === '0000000000000000000000000000000000000000000000000000000000000000';
         return (
           <span
             className="mono"
-            style={{ fontSize: '0.75rem', color: isGenesis ? 'var(--accent)' : 'var(--muted)' }}
-            title={`Previous Hash: ${l.prev_hash}`}
+            style={{ fontSize: '0.75rem', color: isGenesis ? 'var(--primary)' : 'var(--muted)' }}
+            title={l.prev_hash}
           >
-            {isGenesis ? '000000... (Gen)' : `${l.prev_hash.substring(0, 10)}...`}
+            {isGenesis ? '000000... (Start)' : `${l.prev_hash.substring(0, 10)}...`}
           </span>
         );
       },
@@ -226,16 +224,39 @@ export const AuditPage: React.FC = () => {
   ];
 
   return (
-    <AppShell searchPlaceholder="Filter audit records...">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1160px', margin: '0 auto' }}>
+    <AppShell searchPlaceholder="Filter activity entries...">
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.5rem',
+          maxWidth: '1160px',
+          margin: '0 auto',
+        }}
+      >
         {/* Top Header & Export Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+          }}
+        >
           <div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
-              Compliance & audit trail
+            <h1
+              style={{
+                fontSize: '1.5rem',
+                fontWeight: 600,
+                color: 'var(--ink)',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {COPY.activityLog.title}
             </h1>
             <p style={{ fontSize: '0.875rem', color: 'var(--muted)', marginTop: '0.2rem' }}>
-              Cryptographically chained SHA-256 ledger recording identity unmasks, logins, and overrides.
+              {COPY.activityLog.intro}
             </p>
           </div>
 
@@ -249,7 +270,7 @@ export const AuditPage: React.FC = () => {
               loading={verifying}
               icon={<ShieldCheck size={16} />}
             >
-              Verify integrity
+              {verifying ? COPY.activityLog.checkingLog : COPY.activityLog.checkLogButton}
             </Button>
 
             {/* Export Buttons */}
@@ -262,17 +283,17 @@ export const AuditPage: React.FC = () => {
                   loading={exportingFormat === 'csv'}
                   icon={<FileSpreadsheet size={16} />}
                 >
-                  Export CSV
+                  {COPY.activityLog.downloadCsv}
                 </Button>
 
                 <Button
-                  variant="dark"
+                  variant="primary"
                   size="md"
                   onClick={() => handleExport('pdf')}
                   loading={exportingFormat === 'pdf'}
                   icon={<FileText size={16} />}
                 >
-                  Export PDF
+                  {COPY.activityLog.downloadPdf}
                 </Button>
               </>
             )}
@@ -281,7 +302,7 @@ export const AuditPage: React.FC = () => {
 
         {/* Global Errors */}
         {error && <ErrorBanner message={error} onRetry={fetchAuditLogs} />}
-        {verifyError && <ErrorBanner message={verifyError} title="Verification error" />}
+        {verifyError && <ErrorBanner message={verifyError} />}
 
         {/* Verification Result Banner (honest output) */}
         {verificationResult && (
@@ -289,35 +310,45 @@ export const AuditPage: React.FC = () => {
             className="tessera-card"
             style={{
               padding: '1.25rem 1.5rem',
-              backgroundColor: verificationResult.is_valid ? 'var(--risk-low-bg)' : 'var(--risk-high-bg)',
-              borderColor: verificationResult.is_valid ? '#C6E7D5' : '#F7C8C4',
-              color: verificationResult.is_valid ? 'var(--risk-low-text)' : 'var(--risk-high-text)',
+              backgroundColor: verificationResult.is_valid
+                ? 'var(--low-bg)'
+                : 'var(--high-bg)',
+              borderColor: verificationResult.is_valid
+                ? 'var(--low-border)'
+                : 'var(--high-border)',
+              color: verificationResult.is_valid ? 'var(--low)' : 'var(--high)',
               display: 'flex',
               flexDirection: 'column',
               gap: '0.4rem',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '0.9375rem' }}>
-              {verificationResult.is_valid ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontWeight: 600,
+                fontSize: '0.9375rem',
+              }}
+            >
+              {verificationResult.is_valid ? (
+                <ShieldCheck size={18} />
+              ) : (
+                <ShieldAlert size={18} />
+              )}
               <span>
                 {verificationResult.is_valid
-                  ? 'Audit Ledger Integrity Verified'
-                  : 'Ledger Verification Warning (Tampering or Hash Inconsistency Detected)'}
+                  ? COPY.activityLog.checkSuccess
+                  : COPY.activityLog.checkFailure(
+                      verificationResult.tampered_log_id
+                        ? String(verificationResult.tampered_log_id)
+                        : null
+                    )}
               </span>
             </div>
 
-            <div style={{ fontSize: '0.8125rem', lineHeight: 1.5 }}>
-              {verificationResult.message}
-            </div>
-
             <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', opacity: 0.85 }}>
-              Total audited blocks evaluated: <strong>{verificationResult.total_logs}</strong>
-              {verificationResult.tampered_log_id && (
-                <span>
-                  {' '}
-                  | Inconsistency flagged at record ID: <code className="mono">{verificationResult.tampered_log_id}</code>
-                </span>
-              )}
+              {COPY.activityLog.checkTotalLogs(verificationResult.total_logs)}
             </div>
           </div>
         )}
@@ -335,14 +366,25 @@ export const AuditPage: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--muted)', fontSize: '0.8125rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                color: 'var(--muted)',
+                fontSize: '0.8125rem',
+              }}
+            >
               <Filter size={15} />
               <span>Filters:</span>
             </div>
 
             {/* Action Filter */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <label htmlFor="action-filter" style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
+              <label
+                htmlFor="action-filter"
+                style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}
+              >
                 Action
               </label>
               <select
@@ -354,9 +396,10 @@ export const AuditPage: React.FC = () => {
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--line)',
                   backgroundColor: 'var(--surface)',
+                  color: 'var(--ink)',
                 }}
               >
-                <option value="ALL">All actions</option>
+                <option value="ALL">{COPY.activityLog.filters.allActions}</option>
                 {uniqueActions.map((act) => (
                   <option key={act} value={act}>
                     {formatActionName(act)}
@@ -367,8 +410,11 @@ export const AuditPage: React.FC = () => {
 
             {/* Actor Filter */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <label htmlFor="actor-filter" style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
-                Actor
+              <label
+                htmlFor="actor-filter"
+                style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}
+              >
+                Team member
               </label>
               <select
                 id="actor-filter"
@@ -379,9 +425,10 @@ export const AuditPage: React.FC = () => {
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--line)',
                   backgroundColor: 'var(--surface)',
+                  color: 'var(--ink)',
                 }}
               >
-                <option value="ALL">All actors</option>
+                <option value="ALL">{COPY.activityLog.filters.allActors}</option>
                 {uniqueActors.map((act) => (
                   <option key={act} value={act}>
                     {act}
@@ -392,18 +439,17 @@ export const AuditPage: React.FC = () => {
           </div>
 
           <div style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
-            Showing <strong>{filteredLogs.length}</strong> of {logs.length} audit entries
+            Showing <strong>{filteredLogs.length}</strong> of {logs.length} entries
           </div>
         </div>
 
-        {/* Audit Log Table */}
+        {/* Activity Log Table */}
         <DataTable
           columns={columns}
           data={filteredLogs}
           keyExtractor={(l) => l.id}
           loading={loading}
-          emptyTitle="No audit log entries found"
-          emptyDescription="Audit records will automatically be appended as actions are performed."
+          emptyTitle={COPY.activityLog.emptyState}
         />
       </div>
     </AppShell>

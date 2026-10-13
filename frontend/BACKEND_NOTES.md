@@ -1,6 +1,6 @@
 # Tessera Backend Audit & Schema Comparison Notes
 
-This document records all schema discrepancies, architectural gaps, and backend bugs discovered during inspection of the backend (`app/`) and OpenAPI specification (`openapi.json`). All frontend components in `frontend/` are designed to work around these issues without modifying backend code.
+This document records all schema discrepancies, architectural gaps, and backend bugs discovered during inspection of the backend codebase (`app/`), database initializer (`app/db/init_db.py`), and OpenAPI specification (`openapi.json`). All frontend components in `frontend/` are designed to work around these issues without modifying backend code.
 
 ---
 
@@ -46,6 +46,11 @@ This document records all schema discrepancies, architectural gaps, and backend 
 - **Details:** `app` expects an external orchestrator at `http://localhost:8004/investigate/{case_id}`. However, `aggregator/` in the repository is a pure Python library without an HTTP service or FastAPI wrapper.
 - **Frontend Adaptation:** `app` handles this gracefully via fallback stubs (`USE_ML_STUBS=True`). The frontend interacts solely with `/cases` and `/reveal-requests`.
 
+### Schema Discrepancy 4: Report Export Content-Disposition Header
+- **File & Line:** `app/api/v1/reports.py` lines 27–34
+- **Details:** `GET /reports/compliance` returns a raw `Response(content=..., media_type="application/pdf")` or `"text/csv"` without a `Content-Disposition: attachment; filename=...` HTTP response header.
+- **Frontend Adaptation:** The frontend `downloadReport` method reads the response body as a binary `Blob`, constructs a local object URL, creates a synthetic `<a download="compliance_audit_report.{pdf|csv}">` anchor element, triggers a simulated click, and cleans up the URL object.
+
 ---
 
 ## 3. Missing Frontend Capabilities in API
@@ -54,7 +59,9 @@ This document records all schema discrepancies, architectural gaps, and backend 
    The API exposes `GET /cases` and `GET /cases/{case_id}`, but no endpoint to upload transactions or ingest new cases from the UI.
 2. **No On-Demand Multi-Agent Execution Endpoint:**
    Findings and verdicts are statically pre-calculated in SQLite. There is no `POST /cases/{case_id}/analyze` endpoint to trigger live multi-agent execution from the UI.
-3. **Missing Pagination:**
-   `GET /cases` and `GET /audit-logs` return unpaginated lists (`.all()`). The frontend handles this by rendering an in-memory paginated/virtualized `DataTable`.
+3. **Missing Pagination & Server-Side Filtering:**
+   `GET /cases` and `GET /audit-logs` return unpaginated lists (`.all()`). The frontend handles this by rendering an in-memory client-side paginated/filtered `DataTable`.
 4. **Missing CORS on Subordinate ML Microservices:**
    Only `app/main.py` configures `CORSMiddleware`. Subordinate ML microservices on ports 8001–8003 do not configure CORS, reinforcing that all browser traffic must go through `app`.
+5. **Hardcoded Fallback Secret Key:**
+   `app/core/config.py` uses a hardcoded fallback secret key (`"secret_for_demo_purposes_only"`). In production, this must be enforced via an environment variable check.

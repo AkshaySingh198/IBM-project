@@ -64,6 +64,10 @@ export const CaseDetailPage: React.FC = () => {
   }, [id]);
 
   useEffect(() => {
+    document.title = caseData ? `Tessera — Case #${caseData.id}` : 'Tessera — Case Details';
+  }, [caseData]);
+
+  useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     fetchCaseDetail();
   }, [fetchCaseDetail]);

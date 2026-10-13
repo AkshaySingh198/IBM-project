@@ -60,6 +60,10 @@ export const CaseQueuePage: React.FC = () => {
   }, [selectedCaseId]);
 
   useEffect(() => {
+    document.title = 'Tessera — Case Queue';
+  }, []);
+
+  useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     fetchData();
   }, [fetchData]);

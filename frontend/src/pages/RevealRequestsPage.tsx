@@ -58,6 +58,10 @@ export const RevealRequestsPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    document.title = 'Tessera — Reveal Requests';
+  }, []);
+
+  useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     fetchReveals();
   }, [fetchReveals]);

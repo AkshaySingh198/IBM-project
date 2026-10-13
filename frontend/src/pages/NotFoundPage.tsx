@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FileQuestion, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/common/Button';
 
 export const NotFoundPage: React.FC = () => {
+  useEffect(() => {
+    document.title = 'Tessera — Page Not Found';
+  }, []);
+
   return (
     <div
       style={{
